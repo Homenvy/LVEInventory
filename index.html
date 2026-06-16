@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkStation IMS</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f5f5f5;--bg3:#ebebeb;
+  --text:#111;--text2:#555;--text3:#888;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --accent:#4f46e5;--card:#fff;
+  --nav-bg:#fff;--nav-border:rgba(0,0,0,0.08);
+  --modal-bg:rgba(0,0,0,0.45);
+}
+[data-theme="dark"]{
+  --bg:#000;--bg2:#0d0d0d;--bg3:#1a1a1a;
+  --text:#f0f0f0;--text2:#a0a0a0;--text3:#666;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --accent:#818cf8;--card:#0d0d0d;
+  --nav-bg:#000;--nav-border:rgba(255,255,255,0.06);
+  --modal-bg:rgba(0,0,0,0.75);
+}
+html,body{background:var(--bg);transition:background .3s;min-height:100vh}
+body{color:var(--text);font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6}
+.app{display:flex;flex-direction:column;min-height:100vh;background:var(--bg);transition:background .3s}
+
+.desktop-nav{background:var(--nav-bg);border-bottom:.5px solid var(--nav-border);padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;transition:background .3s,border-color .3s;gap:1rem}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:500;font-size:16px;color:var(--text);flex-shrink:0}
+.nav-brand i{font-size:20px;color:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;flex-shrink:1;min-width:0}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-btn{background:none;border:.5px solid var(--border2);color:var(--text2);padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s,color .2s;flex-shrink:0;white-space:nowrap}
+.nav-btn:hover{background:var(--bg2);color:var(--text)}
+.nav-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.nav-btn.primary:hover{opacity:0.9}
+.theme-toggle{background:none;border:.5px solid var(--border2);width:40px;height:40px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:background .2s;flex-shrink:0}
+.sun-icon,.moon-icon{position:absolute;font-size:18px;transition:transform .5s cubic-bezier(.4,0,.2,1),opacity .5s}
+[data-theme="light"] .sun-icon{transform:translateY(0) rotate(0);opacity:1;color:#d97706}
+[data-theme="light"] .moon-icon{transform:translateY(24px) rotate(20deg);opacity:0}
+[data-theme="dark"] .sun-icon{transform:translateY(-24px) rotate(-20deg);opacity:0}
+[data-theme="dark"] .moon-icon{transform:translateY(0) rotate(0);opacity:1;color:#a5b4fc}
+
+main{flex:1;padding:2rem 1.5rem;max-width:1100px;margin:0 auto;width:100%;background:var(--bg);transition:background .3s}
+h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
+.subtitle{font-size:14px;color:var(--text2);margin-bottom:2rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:2rem}
+.stat-card{background:var(--bg2);border-radius:10px;padding:1rem 1.25rem;transition:background .3s}
+.stat-card:hover{background:var(--bg3)}
+.stat-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.stat-value{font-size:26px;font-weight:500;color:var(--text);line-height:1}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:4px}
+.stat-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot-green{background:#16a34a}.dot-amber{background:#d97706}.dot-red{background:#dc2626}.dot-blue{background:#2563eb}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:2rem}
+.panel{background:var(--card);border:.5px solid var(--border);border-radius:12px;padding:1.25rem;transition:background .3s,border-color .3s}
+.panel h2{font-size:15px;font-weight:500;margin-bottom:1rem;display:flex;align-items:center;gap:8px;color:var(--text)}
+.panel h2 i{font-size:17px;color:var(--accent)}
+.asset-table{width:100%;border-collapse:collapse;font-size:13px}
+.asset-table th{text-align:left;color:var(--text3);font-weight:500;padding:6px 8px;border-bottom:.5px solid var(--border)}
+.asset-table td{padding:8px;border-bottom:.5px solid var(--border);color:var(--text2)}
+.asset-table tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
+.badge-blue{background:rgba(37,99,235,.12);color:#1d4ed8}
+[data-theme="dark"] .badge-blue{color:#60a5fa}
+.empty{text-align:center;padding:2rem 1rem;color:var(--text3)}
+.empty i{font-size:40px;margin-bottom:.5rem;display:block;opacity:.4}
+.empty p{font-size:13px}
+
+.modal-backdrop{display:none;position:fixed;inset:0;background:var(--modal-bg);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-backdrop.open{display:flex;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.login-modal,.asset-modal{background:var(--card);border:.5px solid var(--border2);border-radius:16px;padding:2rem;position:relative;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
+.login-modal{width:100%;max-width:360px}
+.asset-modal{width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:background .2s}
+.modal-close:hover{background:var(--bg3);color:var(--text)}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.form-group input,.form-input{width:100%;padding:9px 12px;border:.5px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text);font-size:14px;outline:none;transition:border-color .2s,background .3s}
+.form-group input:focus,.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+select.form-input{appearance:none}
+textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
+.form-actions{display:flex;gap:8px;margin-top:1.5rem}
+.btn-full{flex:1;padding:10px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s,opacity .2s;border:.5px solid var(--border2);color:var(--text2)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{background:none}
+.btn-ghost:hover{background:var(--bg2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-h2{font-size:18px;font-weight:500;margin-bottom:.25rem;display:flex;align-items:center;gap:8px;color:var(--text)}
+.modal-h2 i{color:var(--accent)}
+
+/* ── ORBITAL WHEEL ── */
+.orbital-trigger{width:64px;height:64px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s;box-shadow:0 4px 20px rgba(0,0,0,.3);touch-action:manipulation}
+.orbital-trigger .icon-menu,.orbital-trigger .icon-close{font-size:26px;color:#fff;position:absolute;transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s}
+.orbital-trigger .icon-close{opacity:0;transform:rotate(-90deg)}
+.orbital-wrap.open .orbital-trigger .icon-menu{opacity:0;transform:rotate(90deg)}
+.orbital-wrap.open .orbital-trigger .icon-close{opacity:1;transform:rotate(0)}
+.orbital-wrap.open .orbital-trigger{transform:scale(1.08)}
+
+.orbit-canvas{position:fixed;pointer-events:none;z-index:199;transition:opacity .3s}
+.orbit-canvas.hidden{opacity:0}
+
+.arc-touch{position:fixed;border-radius:50%;z-index:201;touch-action:none;cursor:grab}
+.arc-touch.hidden{display:none}
+
+/* trigger must be ABOVE arc-touch so the X is always tappable */
+.orbital-wrap{display:none;position:fixed;bottom:28px;right:22px;z-index:203;touch-action:none}
+
+/* ── NEW MODALS ── */
+.gen-modal{background:var(--card);border:.5px solid var(--border2);border-radius:16px;padding:2rem;position:relative;animation:slideUp .3s cubic-bezier(.4,0,.2,1);width:100%;max-width:440px;max-height:88vh;overflow-y:auto}
+
+/* QR camera viewport */
+.qr-viewport{position:relative;width:100%;aspect-ratio:1/1;max-height:260px;background:#000;border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.qr-viewport video{width:100%;height:100%;object-fit:cover;display:block}
+.qr-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.qr-corner{position:absolute;width:28px;height:28px;border-color:var(--accent);border-style:solid}
+.qr-corner.tl{top:16px;left:16px;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.qr-corner.tr{top:16px;right:16px;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.qr-corner.bl{bottom:16px;left:16px;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.qr-corner.br{bottom:16px;right:16px;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.qr-laser{position:absolute;left:16px;right:16px;height:2px;background:var(--accent);opacity:.8;box-shadow:0 0 8px var(--accent);animation:laserScan 2s ease-in-out infinite}
+@keyframes laserScan{0%{top:16px}50%{top:calc(100% - 18px)}100%{top:16px}}
+
+/* scan result / error banners */
+.scan-result,.scan-error{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;font-size:14px;margin-bottom:.75rem}
+.scan-result{background:rgba(22,163,74,.1);color:#15803d}
+[data-theme="dark"] .scan-result{color:#4ade80}
+.scan-error{background:rgba(220,38,38,.1);color:#b91c1c}
+[data-theme="dark"] .scan-error{color:#f87171}
+.hidden{display:none!important}
+
+.manual-entry{border-top:.5px solid var(--border);padding-top:1rem;margin-top:.5rem}
+
+.orbit-item{position:fixed;width:56px;height:56px;border-radius:50%;background:var(--card);border:.5px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--text2);z-index:202;cursor:pointer;transition:background .2s,opacity .3s;touch-action:manipulation;opacity:0;pointer-events:none}
+.orbit-item i{font-size:22px;color:var(--accent)}
+.orbit-item .sun-icon,.orbit-item .moon-icon{font-size:18px}
+.orbit-icon-wrap{position:relative;display:inline-block;width:18px;height:18px}
+.orbit-icon-wrap .sun-icon,.orbit-icon-wrap .moon-icon{left:0;top:0}
+.orbit-item.active-item{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.orbit-item.visible{opacity:1;pointer-events:auto}
+
+@media(max-width:640px){
+  .desktop-nav .nav-links{display:none}
+  .orbital-wrap{display:block}
+  main{padding:1.25rem 1rem 110px}
+  h1{font-size:19px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .panels{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-theme="light">
+
+  <nav class="desktop-nav">
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="showSection('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+      <button class="nav-btn" onclick="openAssetModal()"><i class="ti ti-plus"></i> Add asset</button>
+      <button class="nav-btn" onclick="showSection('reports')"><i class="ti ti-chart-bar"></i> Reports</button>
+      <button class="nav-btn" onclick="navAction('scan')"><i class="ti ti-scan"></i> Scan</button>
+      <button class="nav-btn" onclick="navAction('checkin')"><i class="ti ti-square-check"></i> Check in</button>
+      <button class="nav-btn" onclick="navAction('unassign')"><i class="ti ti-user-minus"></i> Unassign</button>
+      <button class="nav-btn" onclick="navAction('assign')"><i class="ti ti-user-plus"></i> Assign</button>
+      <button class="theme-toggle" aria-label="Toggle theme" onclick="toggleTheme()">
+        <i class="ti ti-sun sun-icon"></i>
+        <i class="ti ti-moon moon-icon"></i>
+      </button>
+      <button class="nav-btn primary" onclick="openLogin()"><i class="ti ti-lock"></i> Sign in</button>
+    </div>
+  </nav>
+
+  <main>
+    <div id="section-dashboard">
+      <h1>Dashboard</h1>
+      <p class="subtitle">Overview of all tracked assets — last synced just now</p>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label"><i class="ti ti-package" style="color:#4f46e5"></i> Total assets</div><div class="stat-value">0</div><div class="stat-sub">No data yet</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="ti ti-circle-check" style="color:#16a34a"></i> Active</div><div class="stat-value">0</div><div class="stat-sub"><span class="stat-dot dot-green"></span>In use</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="ti ti-tool" style="color:#d97706"></i> In service</div><div class="stat-value">0</div><div class="stat-sub"><span class="stat-dot dot-amber"></span>Under repair</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="ti ti-alert-circle" style="color:#dc2626"></i> Retired</div><div class="stat-value">0</div><div class="stat-sub"><span class="stat-dot dot-red"></span>End of life</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="ti ti-users" style="color:#2563eb"></i> Assigned</div><div class="stat-value">0</div><div class="stat-sub"><span class="stat-dot dot-blue"></span>To users</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="ti ti-archive" style="color:#888"></i> Unassigned</div><div class="stat-value">0</div><div class="stat-sub">In storage</div></div>
+      </div>
+      <div class="panels">
+        <div class="panel"><h2><i class="ti ti-list"></i> Recent assets</h2><div class="empty"><i class="ti ti-package"></i><p>No assets yet.</p></div></div>
+        <div class="panel"><h2><i class="ti ti-history"></i> Recent activity</h2><div class="empty"><i class="ti ti-clock"></i><p>Activity will appear here as changes are made.</p></div></div>
+      </div>
+      <div class="panel">
+        <h2><i class="ti ti-chart-pie"></i> Asset breakdown by category</h2>
+        <table class="asset-table">
+          <thead><tr><th>Category</th><th>Count</th><th>Active</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Workstations / desktops</td><td>0</td><td>0</td><td><span class="badge badge-blue">Pending data</span></td></tr>
+            <tr><td>Laptops</td><td>0</td><td>0</td><td><span class="badge badge-blue">Pending data</span></td></tr>
+            <tr><td>Monitors</td><td>0</td><td>0</td><td><span class="badge badge-blue">Pending data</span></td></tr>
+            <tr><td>Peripherals</td><td>0</td><td>0</td><td><span class="badge badge-blue">Pending data</span></td></tr>
+            <tr><td>Networking equipment</td><td>0</td><td>0</td><td><span class="badge badge-blue">Pending data</span></td></tr>
+            <tr><td>Servers</td><td>0</td><td>0</td><td><span class="badge badge-blue">Pending data</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="section-reports" style="display:none">
+      <h1>Reports</h1>
+      <p class="subtitle">Analytics and reporting will appear here once asset data is available.</p>
+      <div class="panel"><div class="empty"><i class="ti ti-chart-bar"></i><p>No data to report yet.</p></div></div>
+    </div>
+  </main>
+
+  <!-- ORBITAL THUMB MENU -->
+  <div class="orbital-wrap" id="orbWrap">
+    <button class="orbital-trigger" id="orbTrigger" aria-label="Open navigation" onclick="handleTriggerClick()">
+      <i class="ti ti-menu-2 icon-menu"></i>
+      <i class="ti ti-x icon-close"></i>
+    </button>
+  </div>
+
+  <canvas class="orbit-canvas hidden" id="orbCanvas"></canvas>
+  <div class="arc-touch hidden" id="arcTouch"></div>
+
+  <div class="orbit-item" id="oi-dashboard"><i class="ti ti-layout-dashboard"></i><span>Home</span></div>
+  <div class="orbit-item" id="oi-add"><i class="ti ti-plus"></i><span>Add</span></div>
+  <div class="orbit-item" id="oi-reports"><i class="ti ti-chart-bar"></i><span>Reports</span></div>
+  <div class="orbit-item" id="oi-login"><i class="ti ti-lock"></i><span>Sign in</span></div>
+  <div class="orbit-item" id="oi-scan"><i class="ti ti-scan"></i><span>Scan</span></div>
+  <div class="orbit-item" id="oi-checkin"><i class="ti ti-square-check"></i><span>Check in</span></div>
+  <div class="orbit-item" id="oi-unassign"><i class="ti ti-user-minus"></i><span>Unassign</span></div>
+  <div class="orbit-item" id="oi-assign"><i class="ti ti-user-plus"></i><span>Assign</span></div>
+  <div class="orbit-item" id="oi-theme">
+    <span class="orbit-icon-wrap">
+      <i class="ti ti-sun sun-icon" style="color:#d97706"></i>
+      <i class="ti ti-moon moon-icon" style="color:#a5b4fc"></i>
+    </span>
+    <span>Theme</span>
+  </div>
+
+  <!-- LOGIN MODAL -->
+  <div class="modal-backdrop" id="loginBackdrop" onclick="closeLogin(event)">
+    <div class="login-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="closeLoginBtn()"><i class="ti ti-x"></i></button>
+      <h2 class="modal-h2"><i class="ti ti-shield-lock"></i> Sign in</h2>
+      <p class="modal-sub">Access your inventory workspace</p>
+      <div class="form-group"><label for="login-email">Email address</label><input type="email" id="login-email" placeholder="you@company.com" autocomplete="email"></div>
+      <div class="form-group"><label for="login-pass">Password</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="form-actions">
+        <button class="btn-full btn-ghost" onclick="closeLoginBtn()">Cancel</button>
+        <button class="btn-full btn-primary" onclick="closeLoginBtn()">Sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD ASSET MODAL -->
+  <div class="modal-backdrop" id="assetBackdrop" onclick="closeAsset(event)">
+    <div class="asset-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="closeAssetBtn()"><i class="ti ti-x"></i></button>
+      <h2 class="modal-h2"><i class="ti ti-plus"></i> Add new asset</h2>
+      <p class="modal-sub">Fill in the details below to register an asset</p>
+      <div class="form-row">
+        <div class="form-group"><label>Asset name</label><input type="text" class="form-input" placeholder="e.g. Dell OptiPlex 7090"></div>
+        <div class="form-group"><label>Asset tag / ID</label><input type="text" class="form-input" placeholder="e.g. WS-00142"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Category</label>
+          <select class="form-input"><option value="">Select category</option><option>Workstation / desktop</option><option>Laptop</option><option>Monitor</option><option>Peripheral</option><option>Networking equipment</option><option>Server</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select class="form-input"><option>Active</option><option>In service</option><option>Retired</option><option>In storage</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Serial number</label><input type="text" class="form-input" placeholder="Manufacturer serial"></div>
+        <div class="form-group"><label>Assigned to</label><input type="text" class="form-input" placeholder="User or dept."></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Purchase date</label><input type="date" class="form-input"></div>
+        <div class="form-group"><label>Warranty expiry</label><input type="date" class="form-input"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea class="form-input" placeholder="Any additional details…"></textarea></div>
+      <div class="form-actions">
+        <button class="btn-full btn-ghost" onclick="closeAssetBtn()">Cancel</button>
+        <button class="btn-full btn-primary" onclick="closeAssetBtn()"><i class="ti ti-check"></i> Save asset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSIGN MODAL -->
+  <div class="modal-backdrop" id="assignBackdrop" onclick="closeModal('assignBackdrop',event)">
+    <div class="gen-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="closeModal('assignBackdrop')"><i class="ti ti-x"></i></button>
+      <h2 class="modal-h2"><i class="ti ti-user-plus"></i> Assign asset</h2>
+      <p class="modal-sub">Link an asset to a user or department</p>
+      <div class="form-group">
+        <label>Asset tag / ID</label>
+        <input type="text" class="form-input" id="assign-asset" placeholder="e.g. WS-00142">
+      </div>
+      <div class="form-group">
+        <label>Assign to</label>
+        <input type="text" class="form-input" id="assign-user" placeholder="Full name or department">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Role / title</label>
+          <input type="text" class="form-input" placeholder="e.g. Engineer, IT Admin">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" class="form-input" placeholder="e.g. Building A, Desk 12">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Assignment date</label>
+        <input type="date" class="form-input" id="assign-date">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-input" placeholder="Any additional details…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-full btn-ghost" onclick="closeModal('assignBackdrop')">Cancel</button>
+        <button class="btn-full btn-primary" onclick="closeModal('assignBackdrop')"><i class="ti ti-check"></i> Confirm assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNASSIGN MODAL -->
+  <div class="modal-backdrop" id="unassignBackdrop" onclick="closeModal('unassignBackdrop',event)">
+    <div class="gen-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="closeModal('unassignBackdrop')"><i class="ti ti-x"></i></button>
+      <h2 class="modal-h2"><i class="ti ti-user-minus"></i> Unassign asset</h2>
+      <p class="modal-sub">Remove an asset from its current user or department</p>
+      <div class="form-group">
+        <label>Asset tag / ID</label>
+        <input type="text" class="form-input" placeholder="e.g. WS-00142">
+      </div>
+      <div class="form-group">
+        <label>Currently assigned to</label>
+        <input type="text" class="form-input" placeholder="Current user or department" readonly style="opacity:.6">
+      </div>
+      <div class="form-group">
+        <label>Reason for unassignment</label>
+        <select class="form-input">
+          <option value="">Select reason</option>
+          <option>Employee offboarded</option>
+          <option>Department restructure</option>
+          <option>Asset being serviced</option>
+          <option>Asset being retired</option>
+          <option>Temporary reassignment</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>New status</label>
+        <select class="form-input">
+          <option>In storage</option>
+          <option>In service</option>
+          <option>Retired</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-input" placeholder="Any additional details…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-full btn-ghost" onclick="closeModal('unassignBackdrop')">Cancel</button>
+        <button class="btn-full btn-primary" style="background:#dc2626;border-color:#dc2626" onclick="closeModal('unassignBackdrop')"><i class="ti ti-user-minus"></i> Confirm unassign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN MODAL -->
+  <div class="modal-backdrop" id="scanBackdrop" onclick="closeModal('scanBackdrop',event)">
+    <div class="gen-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="stopCamera('scanBackdrop')"><i class="ti ti-x"></i></button>
+      <h2 class="modal-h2"><i class="ti ti-scan"></i> Scan asset QR code</h2>
+      <p class="modal-sub">Point your camera at the asset's QR code to look it up</p>
+
+      <div class="qr-viewport" id="scan-viewport">
+        <video id="scan-video" autoplay playsinline muted></video>
+        <div class="qr-frame">
+          <span class="qr-corner tl"></span><span class="qr-corner tr"></span>
+          <span class="qr-corner bl"></span><span class="qr-corner br"></span>
+          <div class="qr-laser"></div>
+        </div>
+        <canvas id="scan-canvas" style="display:none"></canvas>
+      </div>
+
+      <div id="scan-result" class="scan-result hidden">
+        <i class="ti ti-circle-check" style="color:#16a34a;font-size:28px"></i>
+        <span id="scan-result-text">Scanned: —</span>
+      </div>
+
+      <div id="scan-error" class="scan-error hidden">
+        <i class="ti ti-alert-circle" style="color:#dc2626;font-size:22px"></i>
+        <span id="scan-error-text">Camera unavailable. Please allow camera access.</span>
+      </div>
+
+      <div class="form-actions" style="margin-top:1rem">
+        <button class="btn-full btn-ghost" onclick="stopCamera('scanBackdrop')">Cancel</button>
+        <button class="btn-full btn-primary" id="scan-manual-btn" onclick="toggleManualEntry('scan')">Enter manually</button>
+      </div>
+      <div id="scan-manual" class="manual-entry hidden">
+        <div class="form-group" style="margin-top:1rem">
+          <label>Asset tag / ID</label>
+          <input type="text" class="form-input" placeholder="e.g. WS-00142">
+        </div>
+        <button class="btn-full btn-primary" style="margin-top:.5rem" onclick="closeModal('scanBackdrop')"><i class="ti ti-check"></i> Look up asset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECK IN MODAL -->
+  <div class="modal-backdrop" id="checkinBackdrop" onclick="closeModal('checkinBackdrop',event)">
+    <div class="gen-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="stopCamera('checkinBackdrop')"><i class="ti ti-x"></i></button>
+      <h2 class="modal-h2"><i class="ti ti-square-check"></i> Check in asset</h2>
+      <p class="modal-sub">Scan the QR code to check an asset back into inventory</p>
+
+      <div class="qr-viewport" id="checkin-viewport">
+        <video id="checkin-video" autoplay playsinline muted></video>
+        <div class="qr-frame">
+          <span class="qr-corner tl"></span><span class="qr-corner tr"></span>
+          <span class="qr-corner bl"></span><span class="qr-corner br"></span>
+          <div class="qr-laser"></div>
+        </div>
+        <canvas id="checkin-canvas" style="display:none"></canvas>
+      </div>
+
+      <div id="checkin-result" class="scan-result hidden">
+        <i class="ti ti-circle-check" style="color:#16a34a;font-size:28px"></i>
+        <span id="checkin-result-text">Scanned: —</span>
+      </div>
+
+      <div id="checkin-error" class="scan-error hidden">
+        <i class="ti ti-alert-circle" style="color:#dc2626;font-size:22px"></i>
+        <span id="checkin-error-text">Camera unavailable. Please allow camera access.</span>
+      </div>
+
+      <div class="form-group" style="margin-top:1rem">
+        <label>Check-in condition</label>
+        <select class="form-input">
+          <option>Good — ready for storage</option>
+          <option>Needs service before reuse</option>
+          <option>Damaged — flag for review</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Checked in by</label>
+        <input type="text" class="form-input" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-input" placeholder="Any issues to note…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-full btn-ghost" onclick="stopCamera('checkinBackdrop')">Cancel</button>
+        <button class="btn-full btn-primary" onclick="closeModal('checkinBackdrop')"><i class="ti ti-check"></i> Confirm check in</button>
+      </div>
+      <div class="form-actions" style="margin-top:.5rem">
+        <button class="btn-full btn-ghost" style="font-size:12px" onclick="toggleManualEntry('checkin')">Enter tag manually instead</button>
+      </div>
+      <div id="checkin-manual" class="manual-entry hidden">
+        <div class="form-group" style="margin-top:.5rem">
+          <input type="text" class="form-input" placeholder="Asset tag / ID e.g. WS-00142">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .app -->
+
+<script>
+const app = document.getElementById('app');
+
+function applyTheme(t) {
+  app.setAttribute('data-theme', t);
+  document.documentElement.style.background = t === 'dark' ? '#000' : '#fff';
+  document.body.style.background = t === 'dark' ? '#000' : '#fff';
+  localStorage.setItem('ims-theme', t);
+}
+function toggleTheme() { applyTheme(app.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
+function openLogin() { document.getElementById('loginBackdrop').classList.add('open'); }
+function closeLoginBtn() { document.getElementById('loginBackdrop').classList.remove('open'); }
+function closeLogin(e) { if (e.target === document.getElementById('loginBackdrop')) closeLoginBtn(); }
+function openAssetModal() { document.getElementById('assetBackdrop').classList.add('open'); }
+function closeAssetBtn() { document.getElementById('assetBackdrop').classList.remove('open'); }
+function closeAsset(e) { if (e.target === document.getElementById('assetBackdrop')) closeAssetBtn(); }
+function showSection(s) {
+  document.getElementById('section-dashboard').style.display = s === 'dashboard' ? '' : 'none';
+  document.getElementById('section-reports').style.display = s === 'reports' ? '' : 'none';
+}
+
+/* ── ORBITAL WHEEL ENGINE ── */
+const ITEMS = [
+  { id: 'oi-dashboard', action: () => showSection('dashboard') },
+  { id: 'oi-add',       action: () => openAssetModal() },
+  { id: 'oi-reports',   action: () => showSection('reports') },
+  { id: 'oi-login',     action: () => openLogin() },
+  { id: 'oi-scan',      action: () => navAction('scan') },
+  { id: 'oi-checkin',   action: () => navAction('checkin') },
+  { id: 'oi-unassign',  action: () => navAction('unassign') },
+  { id: 'oi-assign',    action: () => navAction('assign') },
+  { id: 'oi-theme',     action: () => toggleTheme() },
+];
+
+const ITEM_COUNT = ITEMS.length;
+const ORBIT_R    = 110;
+const ITEM_R     = 28;
+const SNAP_DEG   = 360 / ITEM_COUNT;
+/* visible window — upper-left quarter circle, reachable by right thumb */
+const ARC_START  = 180;
+const ARC_END    = 280;
+const ARC_SPAN   = ARC_END - ARC_START;
+
+let orbOpen       = false;
+let orbitAngle    = 0;
+let velocity      = 0;
+let rafId         = null;
+let touchStartY   = 0;
+let lastTouchY    = 0;
+let lastTouchTime = 0;
+let isDragging    = false;
+let mouseDragging = false;
+let mouseLastY    = 0;
+
+const orbWrap   = document.getElementById('orbWrap');
+const orbCanvas = document.getElementById('orbCanvas');
+const arcTouch  = document.getElementById('arcTouch');
+const ctx       = orbCanvas.getContext('2d');
+const itemEls   = ITEMS.map(it => document.getElementById(it.id));
+
+function getTriggerCenter() {
+  const r = document.getElementById('orbTrigger').getBoundingClientRect();
+  return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+}
+
+function itemAngleDeg(index) {
+  const step = 360 / ITEM_COUNT;
+  return ARC_START + index * step + orbitAngle;
+}
+
+function degToRad(d) { return d * Math.PI / 180; }
+
+function drawRing() {
+  const { cx, cy } = getTriggerCenter();
+  const dpr = window.devicePixelRatio || 1;
+  const pad = ORBIT_R + ITEM_R + 8;
+  const size = (ORBIT_R + pad) * 2;
+
+  orbCanvas.width  = size * dpr;
+  orbCanvas.height = size * dpr;
+  orbCanvas.style.width  = size + 'px';
+  orbCanvas.style.height = size + 'px';
+  orbCanvas.style.left   = (cx - ORBIT_R - pad) + 'px';
+  orbCanvas.style.top    = (cy - ORBIT_R - pad) + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const lx = ORBIT_R + pad;
+  const ly = ORBIT_R + pad;
+  ctx.clearRect(0, 0, size, size);
+
+  const isDark = app.getAttribute('data-theme') === 'dark';
+  ctx.beginPath();
+  ctx.arc(lx, ly, ORBIT_R, degToRad(ARC_START - 10), degToRad(ARC_END + 10));
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  for (let i = 0; i < ITEM_COUNT; i++) {
+    const deg = ((itemAngleDeg(i) % 360) + 360) % 360;
+    if (!isInVisibleArc(deg)) continue;
+    const a = degToRad(deg);
+    const ox = lx + Math.cos(a) * ORBIT_R;
+    const oy = ly + Math.sin(a) * ORBIT_R;
+    ctx.beginPath();
+    ctx.arc(ox, oy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
+    ctx.fill();
+  }
+}
+
+/* is the given angle (0-360) within the visible arc window (with small buffer)? */
+function isInVisibleArc(deg) {
+  const buf = 14;
+  return deg >= (ARC_START - buf) && deg <= (ARC_END + buf);
+}
+
+function positionItems() {
+  const { cx, cy } = getTriggerCenter();
+  const prominentAngle = (ARC_START + ARC_END) / 2;
+  itemEls.forEach((el, i) => {
+    const rawDeg = itemAngleDeg(i);
+    const deg = ((rawDeg % 360) + 360) % 360;
+    const rad = degToRad(deg);
+    const x = cx + Math.cos(rad) * ORBIT_R - ITEM_R;
+    const y = cy + Math.sin(rad) * ORBIT_R - ITEM_R;
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+
+    if (isInVisibleArc(deg)) {
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+
+    const diff = Math.abs(deg - prominentAngle);
+    const normalDiff = Math.min(diff, 360 - diff);
+    el.classList.toggle('active-item', normalDiff < SNAP_DEG / 2);
+  });
+}
+
+function sizeArcTouch() {
+  const { cx, cy } = getTriggerCenter();
+  const pad = ITEM_R + 10;
+  const r = ORBIT_R + pad;
+  arcTouch.style.width  = r * 2 + 'px';
+  arcTouch.style.height = r * 2 + 'px';
+  arcTouch.style.left   = (cx - r) + 'px';
+  arcTouch.style.top    = (cy - r) + 'px';
+}
+
+function openOrbit() {
+  orbOpen = true;
+  orbWrap.classList.add('open');
+  orbCanvas.classList.remove('hidden');
+  arcTouch.classList.remove('hidden');
+  drawRing();
+  positionItems();
+  sizeArcTouch();
+}
+
+function closeOrbit() {
+  orbOpen = false;
+  orbWrap.classList.remove('open');
+  orbCanvas.classList.add('hidden');
+  arcTouch.classList.add('hidden');
+  itemEls.forEach(el => el.classList.remove('visible', 'active-item'));
+  cancelAnimationFrame(rafId);
+  velocity = 0;
+}
+
+function toggleOrbit() { orbOpen ? closeOrbit() : openOrbit(); }
+
+/* trigger button: opens when closed, closes (X) when open */
+function handleTriggerClick() {
+  if (orbOpen) closeOrbit();
+  else openOrbit();
+}
+
+/* ── MODAL HELPERS ── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id, e) {
+  if (e && e.target !== document.getElementById(id)) return;
+  document.getElementById(id).classList.remove('open');
+}
+
+/* ── NAV ACTION ROUTER ── */
+function navAction(action) {
+  if (action === 'assign')   { openModal('assignBackdrop'); }
+  else if (action === 'unassign') { openModal('unassignBackdrop'); }
+  else if (action === 'scan') { openModal('scanBackdrop'); startCamera('scan'); }
+  else if (action === 'checkin') { openModal('checkinBackdrop'); startCamera('checkin'); }
+}
+
+/* ── QR CAMERA ENGINE ── */
+let activeStreams = {};
+
+async function startCamera(prefix) {
+  const video   = document.getElementById(prefix + '-video');
+  const errEl   = document.getElementById(prefix + '-error');
+  const resEl   = document.getElementById(prefix + '-result');
+  if (resEl) resEl.classList.add('hidden');
+  if (errEl) errEl.classList.add('hidden');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showCameraError(prefix, 'Camera API not supported in this browser.');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    activeStreams[prefix] = stream;
+    video.srcObject = stream;
+    video.play();
+    /* Poll frames for QR — uses BarcodeDetector if available */
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      pollForQR(prefix, video, detector);
+    }
+  } catch (err) {
+    showCameraError(prefix, 'Camera access denied. Please allow camera permissions and try again.');
+  }
+}
+
+function pollForQR(prefix, video, detector) {
+  if (!activeStreams[prefix]) return;
+  detector.detect(video).then(codes => {
+    if (codes.length > 0) {
+      const value = codes[0].rawValue;
+      showScanResult(prefix, value);
+      stopStream(prefix);
+    } else {
+      requestAnimationFrame(() => pollForQR(prefix, video, detector));
+    }
+  }).catch(() => requestAnimationFrame(() => pollForQR(prefix, video, detector)));
+}
+
+function showScanResult(prefix, value) {
+  const resEl   = document.getElementById(prefix + '-result');
+  const resText = document.getElementById(prefix + '-result-text');
+  if (resEl && resText) {
+    resText.textContent = 'Scanned: ' + value;
+    resEl.classList.remove('hidden');
+  }
+}
+
+function showCameraError(prefix, msg) {
+  const errEl   = document.getElementById(prefix + '-error');
+  const errText = document.getElementById(prefix + '-error-text');
+  if (errEl && errText) {
+    errText.textContent = msg;
+    errEl.classList.remove('hidden');
+  }
+}
+
+function stopStream(prefix) {
+  if (activeStreams[prefix]) {
+    activeStreams[prefix].getTracks().forEach(t => t.stop());
+    delete activeStreams[prefix];
+  }
+  const video = document.getElementById(prefix + '-video');
+  if (video) { video.srcObject = null; }
+}
+
+function stopCamera(backdropId) {
+  const prefix = backdropId.replace('Backdrop', '');
+  stopStream(prefix);
+  document.getElementById(backdropId).classList.remove('open');
+}
+
+function toggleManualEntry(prefix) {
+  const el = document.getElementById(prefix + '-manual');
+  if (el) el.classList.toggle('hidden');
+}
+
+function snapToNearest() {
+  const prominentAngle = (ARC_START + ARC_END) / 2;
+  let bestDiff = Infinity, bestIndex = 0;
+  itemEls.forEach((_, i) => {
+    const deg = ((itemAngleDeg(i) % 360) + 360) % 360;
+    const diff = Math.min(Math.abs(deg - prominentAngle), 360 - Math.abs(deg - prominentAngle));
+    if (diff < bestDiff) { bestDiff = diff; bestIndex = i; }
+  });
+  const currentDeg = ((itemAngleDeg(bestIndex) % 360) + 360) % 360;
+  let delta = prominentAngle - currentDeg;
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+  const snapFrames = 12;
+  let frame = 0;
+  function snap() {
+    if (frame >= snapFrames) { drawRing(); positionItems(); return; }
+    orbitAngle += delta / snapFrames;
+    frame++;
+    drawRing();
+    positionItems();
+    requestAnimationFrame(snap);
+  }
+  snap();
+}
+
+function animateMomentum() {
+  if (Math.abs(velocity) < 0.05) { velocity = 0; snapToNearest(); return; }
+  orbitAngle += velocity;
+  velocity *= 0.92;
+  drawRing();
+  positionItems();
+  rafId = requestAnimationFrame(animateMomentum);
+}
+
+function arcTouchStart(e) {
+  e.preventDefault();
+  cancelAnimationFrame(rafId);
+  velocity = 0;
+  isDragging = true;
+  touchStartY = e.touches[0].clientY;
+  lastTouchY = touchStartY;
+  lastTouchTime = Date.now();
+}
+function arcTouchMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const y = e.touches[0].clientY;
+  const dy = lastTouchY - y;
+  const now = Date.now();
+  const dt = Math.max(now - lastTouchTime, 1);
+  velocity = (dy / dt) * 16;
+  orbitAngle += dy * 0.5;
+  lastTouchY = y;
+  lastTouchTime = now;
+  drawRing();
+  positionItems();
+}
+function arcTouchEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  rafId = requestAnimationFrame(animateMomentum);
+}
+
+function arcMouseDown(e) {
+  mouseDragging = true;
+  mouseLastY = e.clientY;
+  cancelAnimationFrame(rafId);
+  velocity = 0;
+}
+function arcMouseMove(e) {
+  if (!mouseDragging) return;
+  const dy = mouseLastY - e.clientY;
+  velocity = dy * 0.5;
+  orbitAngle += dy * 0.5;
+  mouseLastY = e.clientY;
+  drawRing();
+  positionItems();
+}
+function arcMouseUp() {
+  if (!mouseDragging) return;
+  mouseDragging = false;
+  rafId = requestAnimationFrame(animateMomentum);
+}
+
+arcTouch.addEventListener('touchstart', arcTouchStart, { passive: false });
+arcTouch.addEventListener('touchmove',  arcTouchMove,  { passive: false });
+arcTouch.addEventListener('touchend',   arcTouchEnd,   { passive: false });
+arcTouch.addEventListener('mousedown',  arcMouseDown);
+window.addEventListener('mousemove', arcMouseMove);
+window.addEventListener('mouseup',   arcMouseUp);
+
+itemEls.forEach((el, i) => {
+  el.addEventListener('click', () => {
+    if (Math.abs(velocity) > 0.5) return;
+    closeOrbit();
+    setTimeout(() => ITEMS[i].action(), 160);
+  });
+});
+
+document.addEventListener('click', (e) => {
+  if (!orbOpen) return;
+  const inWrap = orbWrap.contains(e.target);
+  const inItem = itemEls.some(el => el.contains(e.target));
+  const inArc  = arcTouch.contains(e.target);
+  if (!inWrap && !inItem && !inArc) closeOrbit();
+});
+
+window.addEventListener('resize', () => {
+  if (orbOpen) { drawRing(); positionItems(); sizeArcTouch(); }
+});
+
+applyTheme(localStorage.getItem('ims-theme') || 'light');
+</script>
+</body>
+</html>
