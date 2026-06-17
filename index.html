@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WorkStation IMS</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -164,7 +164,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .detail-value{font-size:14px;color:var(--text)}
 .detail-notes{background:var(--bg2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
 .qr-box{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:1.25rem;background:var(--bg2);border-radius:12px;margin-bottom:1.25rem}
-.qr-box canvas{border-radius:6px}
+.qr-box canvas,.qr-box img{border-radius:6px;display:block}
 .qr-id{font-size:13px;font-family:monospace;color:var(--text2);letter-spacing:.05em}
 .detail-actions{display:flex;gap:8px;flex-wrap:wrap}
 .detail-actions button{flex:1;min-width:100px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
@@ -395,7 +395,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
       <h2 class="modal-h2" id="detail-name"><i class="ti ti-package"></i> Asset detail</h2>
       <p class="modal-sub" id="detail-id-sub"></p>
       <div class="qr-box">
-        <canvas id="detail-qr"></canvas>
+        <div id="detail-qr" style="display:flex;align-items:center;justify-content:center;"></div>
         <span class="qr-id" id="detail-qr-label"></span>
       </div>
       <div class="detail-grid" id="detail-grid"></div>
@@ -769,12 +769,19 @@ function openDetailModal(assetId) {
   document.getElementById('detail-name').innerHTML = `<i class="ti ti-package"></i> ${a.name}`;
   document.getElementById('detail-id-sub').textContent = a.id + ' · ' + a.category;
 
-  // QR code
-  const qrCanvas = document.getElementById('detail-qr');
+  // QR code — clear previous and render fresh
+  const qrContainer = document.getElementById('detail-qr');
   document.getElementById('detail-qr-label').textContent = a.id;
-  QRCode.toCanvas(qrCanvas, a.id, { width: 160, margin: 1,
-    color: { dark: document.getElementById('app').getAttribute('data-theme') === 'dark' ? '#f0f0f0' : '#111111', light: document.getElementById('app').getAttribute('data-theme') === 'dark' ? '#0d0d0d' : '#ffffff' }
-  }, () => {});
+  qrContainer.innerHTML = '';
+  const isDark = document.getElementById('app').getAttribute('data-theme') === 'dark';
+  new QRCode(qrContainer, {
+    text:          a.id,
+    width:         160,
+    height:        160,
+    colorDark:     isDark ? '#f0f0f0' : '#111111',
+    colorLight:    isDark ? '#0d0d0d' : '#ffffff',
+    correctLevel:  QRCode.CorrectLevel.M
+  });
 
   // Detail grid
   const fields = [
