@@ -1,0 +1,124 @@
+{
+  "assets": [
+    {
+      "id": "WS-00001",
+      "name": "Dell OptiPlex 7090",
+      "category": "Workstation",
+      "status": "Active",
+      "serial": "DL7090-A4F21",
+      "assignedTo": "Marcus Reid",
+      "location": "Building A, Desk 4",
+      "purchaseDate": "2023-03-10",
+      "warrantyExpiry": "2026-03-10",
+      "notes": "Primary workstation for engineering team lead."
+    },
+    {
+      "id": "LT-00002",
+      "name": "Lenovo ThinkPad X1 Carbon",
+      "category": "Laptop",
+      "status": "Active",
+      "serial": "LN-X1C-88B02",
+      "assignedTo": "Priya Nair",
+      "location": "Remote",
+      "purchaseDate": "2023-07-22",
+      "warrantyExpiry": "2026-07-22",
+      "notes": "Issued for remote work. Includes docking station."
+    },
+    {
+      "id": "MN-00003",
+      "name": "LG 27UK850 4K Monitor",
+      "category": "Monitor",
+      "status": "Active",
+      "serial": "LG27-9C341",
+      "assignedTo": "Marcus Reid",
+      "location": "Building A, Desk 4",
+      "purchaseDate": "2023-03-10",
+      "warrantyExpiry": "2026-03-10",
+      "notes": "Paired with WS-00001."
+    },
+    {
+      "id": "SV-00004",
+      "name": "Dell PowerEdge R750",
+      "category": "Server",
+      "status": "Active",
+      "serial": "PE-R750-CC901",
+      "assignedTo": "IT Infrastructure",
+      "location": "Server Room, Rack 3",
+      "purchaseDate": "2022-11-01",
+      "warrantyExpiry": "2027-11-01",
+      "notes": "Primary file and application server."
+    },
+    {
+      "id": "LT-00005",
+      "name": "Apple MacBook Pro 14-inch M3",
+      "category": "Laptop",
+      "status": "In Service",
+      "serial": "APL-MBP-F1204",
+      "assignedTo": "",
+      "location": "IT Storage",
+      "purchaseDate": "2024-01-15",
+      "warrantyExpiry": "2026-01-15",
+      "notes": "Screen hinge issue. Sent for repair 2025-11-10."
+    },
+    {
+      "id": "NW-00006",
+      "name": "Cisco Catalyst 9200 Switch",
+      "category": "Networking",
+      "status": "Active",
+      "serial": "CSC-C9200-7E44A",
+      "assignedTo": "IT Infrastructure",
+      "location": "Server Room, Rack 1",
+      "purchaseDate": "2022-06-15",
+      "warrantyExpiry": "2027-06-15",
+      "notes": "24-port managed switch. Floor 1 backbone."
+    },
+    {
+      "id": "WS-00007",
+      "name": "HP EliteDesk 800 G9",
+      "category": "Workstation",
+      "status": "Unassigned",
+      "serial": "HP-ED800-3B217",
+      "assignedTo": "",
+      "location": "IT Storage",
+      "purchaseDate": "2024-05-20",
+      "warrantyExpiry": "2027-05-20",
+      "notes": "New unit. Ready to deploy."
+    },
+    {
+      "id": "PH-00008",
+      "name": "Logitech MX Keys + MX Master 3 Bundle",
+      "category": "Peripheral",
+      "status": "Active",
+      "serial": "LGT-MXBND-A0091",
+      "assignedTo": "Priya Nair",
+      "location": "Remote",
+      "purchaseDate": "2023-07-22",
+      "warrantyExpiry": "2025-07-22",
+      "notes": "Wireless keyboard and mouse set."
+    },
+    {
+      "id": "LT-00009",
+      "name": "Dell XPS 15 9530",
+      "category": "Laptop",
+      "status": "Retired",
+      "serial": "DL-XPS15-E0033",
+      "assignedTo": "",
+      "location": "IT Storage",
+      "purchaseDate": "2020-08-01",
+      "warrantyExpiry": "2023-08-01",
+      "notes": "End of life. Flagged for secure wipe and disposal."
+    },
+    {
+      "id": "MN-00010",
+      "name": "Dell UltraSharp U2722D 27-inch",
+      "category": "Monitor",
+      "status": "Unassigned",
+      "serial": "DL-U2722-B8812",
+      "assignedTo": "",
+      "location": "Building B, Storage Closet",
+      "purchaseDate": "2023-09-05",
+      "warrantyExpiry": "2026-09-05",
+      "notes": "Spare unit. Ready to deploy."
+    }
+  ]
+}
