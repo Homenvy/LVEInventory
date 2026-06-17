@@ -169,95 +169,35 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .qr-id{font-size:13px;font-family:monospace;color:#333;letter-spacing:.05em;font-weight:600}
 
 /* ── PRINT STYLES ── */
-#print-container{display:none}
+#print-container{display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:20mm 15mm;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#000;width:100%;box-sizing:border-box}
+
+/* When print-container is made visible via JS, hide the app */
+#print-container[style*="flex"] ~ * { display: none !important; }
+body:has(#print-container[style*="flex"]) .app { display: none !important; }
 
 @media print {
-  /* Hide everything except the print container */
   body > *:not(#print-container){ display:none !important }
-  #print-container{
-    display:flex !important;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding:20mm 15mm;
-    font-family:system-ui,-apple-system,sans-serif;
-    background:#fff;
-    color:#000;
-    width:100%;
-    min-height:100vh;
-  }
+  #print-container{ display:flex !important }
   #print-logo{
-    font-size:11pt;
-    font-weight:600;
-    color:#444;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    margin-bottom:6mm;
-    border-bottom:0.5pt solid #ccc;
-    padding-bottom:4mm;
-    width:100%;
-    text-align:center;
+    font-size:11pt;font-weight:600;color:#444;letter-spacing:.08em;
+    text-transform:uppercase;margin-bottom:6mm;border-bottom:0.5pt solid #ccc;
+    padding-bottom:4mm;width:100%;text-align:center;
   }
-  /* QR code — large, high contrast, proper quiet zone */
   #print-qr-wrap{
-    background:#fff;
-    padding:8mm;           /* quiet zone */
-    border:0.5pt solid #ddd;
-    border-radius:3mm;
-    margin-bottom:6mm;
-    line-height:0;
+    background:#fff;padding:8mm;border:0.5pt solid #ddd;
+    border-radius:3mm;margin-bottom:6mm;line-height:0;
   }
-  #print-qr-wrap canvas,
-  #print-qr-wrap img{
-    width:70mm !important;
-    height:70mm !important;
-    display:block;
-    image-rendering:pixelated;
+  #print-qr-wrap canvas,#print-qr-wrap img{
+    width:70mm !important;height:70mm !important;
+    display:block;image-rendering:pixelated;
   }
-  #print-asset-name{
-    font-size:16pt;
-    font-weight:700;
-    color:#000;
-    text-align:center;
-    margin-bottom:2mm;
-  }
-  #print-asset-id{
-    font-size:13pt;
-    font-family:monospace;
-    color:#333;
-    font-weight:600;
-    letter-spacing:.08em;
-    text-align:center;
-    margin-bottom:6mm;
-  }
-  #print-asset-table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:10pt;
-    margin-bottom:8mm;
-  }
-  #print-asset-table td{
-    padding:2.5mm 3mm;
-    border-bottom:0.5pt solid #ddd;
-    color:#000;
-  }
-  #print-asset-table td:first-child{
-    color:#555;
-    font-weight:600;
-    width:38%;
-  }
-  #print-footer{
-    font-size:8pt;
-    color:#888;
-    text-align:center;
-    border-top:0.5pt solid #ddd;
-    padding-top:4mm;
-    width:100%;
-  }
-  @page{
-    size:A4 portrait;
-    margin:0;
-  }
+  #print-asset-name{ font-size:16pt;font-weight:700;color:#000;text-align:center;margin-bottom:2mm; }
+  #print-asset-id{ font-size:13pt;font-family:monospace;color:#333;font-weight:600;letter-spacing:.08em;text-align:center;margin-bottom:6mm; }
+  #print-asset-table{ width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:8mm; }
+  #print-asset-table td{ padding:2.5mm 3mm;border-bottom:0.5pt solid #ddd;color:#000; }
+  #print-asset-table td:first-child{ color:#555;font-weight:600;width:38%; }
+  #print-footer{ font-size:8pt;color:#888;text-align:center;border-top:0.5pt solid #ddd;padding-top:4mm;width:100%; }
+  @page{ size:A4 portrait;margin:0; }
 }
 .detail-actions{display:flex;gap:8px;flex-wrap:wrap}
 .detail-actions button{flex:1;min-width:100px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
@@ -1160,24 +1100,24 @@ function printQR(assetId) {
   const a = assetData.find(x => x.id === assetId);
   if (!a) return;
 
-  // Populate print container
+  // Populate text fields
   document.getElementById('print-asset-name').textContent = a.name;
   document.getElementById('print-asset-id').textContent   = a.id;
 
-  // Build info table for print
+  // Build info table
   const rows = [
-    ['Category',       a.category   || '—'],
-    ['Status',         a.status     || '—'],
-    ['Serial',         a.serial     || '—'],
-    ['Assigned to',    a.assignedTo || 'Unassigned'],
-    ['Location',       a.location   || '—'],
-    ['Purchase date',  a.purchaseDate   || '—'],
-    ['Warranty expiry',a.warrantyExpiry || '—'],
+    ['Category',        a.category        || '—'],
+    ['Status',          a.status          || '—'],
+    ['Serial',          a.serial          || '—'],
+    ['Assigned to',     a.assignedTo      || 'Unassigned'],
+    ['Location',        a.location        || '—'],
+    ['Purchase date',   a.purchaseDate    || '—'],
+    ['Warranty expiry', a.warrantyExpiry  || '—'],
   ];
   document.getElementById('print-asset-table').innerHTML =
     rows.map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('');
 
-  // Generate a fresh high-res QR for print (always black on white)
+  // Generate fresh high-res QR (always black on white for physical print)
   const wrap = document.getElementById('print-qr-wrap');
   wrap.innerHTML = '';
   new QRCode(wrap, {
@@ -1189,8 +1129,35 @@ function printQR(assetId) {
     correctLevel: QRCode.CorrectLevel.H
   });
 
-  // Small delay to let qrcodejs finish rendering, then print
-  setTimeout(() => window.print(), 300);
+  // qrcodejs creates an <img> inside the wrapper.
+  // We MUST wait for that img to finish loading before printing,
+  // otherwise the browser snapshots a blank canvas.
+  // We also explicitly show/hide via JS rather than relying solely
+  // on @media print to override display:none (Chromium bug).
+  function doPrint() {
+    const pc = document.getElementById('print-container');
+    pc.style.display = 'flex';          // make visible NOW in regular DOM
+    requestAnimationFrame(() => {       // let browser paint one frame
+      requestAnimationFrame(() => {     // then a second frame to be safe
+        window.print();
+        // Restore after print dialog closes
+        setTimeout(() => { pc.style.display = ''; }, 500);
+      });
+    });
+  }
+
+  const img = wrap.querySelector('img');
+  if (img) {
+    if (img.complete && img.naturalWidth > 0) {
+      doPrint();
+    } else {
+      img.onload  = doPrint;
+      img.onerror = doPrint; // print anyway even if img fails
+    }
+  } else {
+    // qrcodejs fell back to canvas — safe to print immediately after paint
+    requestAnimationFrame(() => requestAnimationFrame(doPrint));
+  }
 }
 
 /* ═══════════════════════════════════════════════
