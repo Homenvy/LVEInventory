@@ -168,37 +168,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .qr-box canvas,.qr-box img{border-radius:4px;display:block;max-width:200px;height:auto}
 .qr-id{font-size:13px;font-family:monospace;color:#333;letter-spacing:.05em;font-weight:600}
 
-/* ── PRINT STYLES ── */
-#print-container{display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:20mm 15mm;font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#000;width:100%;box-sizing:border-box}
-
-/* When print-container is made visible via JS, hide the app */
-#print-container[style*="flex"] ~ * { display: none !important; }
-body:has(#print-container[style*="flex"]) .app { display: none !important; }
-
-@media print {
-  body > *:not(#print-container){ display:none !important }
-  #print-container{ display:flex !important }
-  #print-logo{
-    font-size:11pt;font-weight:600;color:#444;letter-spacing:.08em;
-    text-transform:uppercase;margin-bottom:6mm;border-bottom:0.5pt solid #ccc;
-    padding-bottom:4mm;width:100%;text-align:center;
-  }
-  #print-qr-wrap{
-    background:#fff;padding:8mm;border:0.5pt solid #ddd;
-    border-radius:3mm;margin-bottom:6mm;line-height:0;
-  }
-  #print-qr-wrap canvas,#print-qr-wrap img{
-    width:70mm !important;height:70mm !important;
-    display:block;image-rendering:pixelated;
-  }
-  #print-asset-name{ font-size:16pt;font-weight:700;color:#000;text-align:center;margin-bottom:2mm; }
-  #print-asset-id{ font-size:13pt;font-family:monospace;color:#333;font-weight:600;letter-spacing:.08em;text-align:center;margin-bottom:6mm; }
-  #print-asset-table{ width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:8mm; }
-  #print-asset-table td{ padding:2.5mm 3mm;border-bottom:0.5pt solid #ddd;color:#000; }
-  #print-asset-table td:first-child{ color:#555;font-weight:600;width:38%; }
-  #print-footer{ font-size:8pt;color:#888;text-align:center;border-top:0.5pt solid #ddd;padding-top:4mm;width:100%; }
-  @page{ size:A4 portrait;margin:0; }
-}
+/* DETAIL ACTIONS */
 .detail-actions{display:flex;gap:8px;flex-wrap:wrap}
 .detail-actions button{flex:1;min-width:100px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
 .detail-actions button:hover{background:var(--bg3)}
@@ -573,15 +543,6 @@ body:has(#print-container[style*="flex"]) .app { display: none !important; }
     </div>
   </div>
 
-  <!-- PRINT CONTAINER — only visible when printing -->
-  <div id="print-container">
-    <div id="print-logo">WorkStation IMS</div>
-    <div id="print-qr-wrap"></div>
-    <div id="print-asset-name"></div>
-    <div id="print-asset-id"></div>
-    <table id="print-asset-table"></table>
-    <div id="print-footer">Scan QR code to look up this asset in WorkStation IMS</div>
-  </div>
 
 </div><!-- end .app -->
 
@@ -1094,17 +1055,14 @@ function statusBadge(status) {
 }
 
 /* ═══════════════════════════════════════════════
-   PRINT QR
+   PRINT QR — opens a dedicated print window
+   (bypasses all display:none / @media print
+   timing issues in Chromium-based browsers)
 ═══════════════════════════════════════════════ */
 function printQR(assetId) {
   const a = assetData.find(x => x.id === assetId);
   if (!a) return;
 
-  // Populate text fields
-  document.getElementById('print-asset-name').textContent = a.name;
-  document.getElementById('print-asset-id').textContent   = a.id;
-
-  // Build info table
   const rows = [
     ['Category',        a.category        || '—'],
     ['Status',          a.status          || '—'],
@@ -1114,50 +1072,86 @@ function printQR(assetId) {
     ['Purchase date',   a.purchaseDate    || '—'],
     ['Warranty expiry', a.warrantyExpiry  || '—'],
   ];
-  document.getElementById('print-asset-table').innerHTML =
-    rows.map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('');
 
-  // Generate fresh high-res QR (always black on white for physical print)
-  const wrap = document.getElementById('print-qr-wrap');
-  wrap.innerHTML = '';
-  new QRCode(wrap, {
-    text:         a.id,
-    width:        500,
-    height:       500,
-    colorDark:    '#000000',
-    colorLight:   '#ffffff',
+  const tableRows = rows.map(([l,v]) =>
+    `<tr><td class="label">${l}</td><td>${v}</td></tr>`
+  ).join('');
+
+  // Open a blank popup — browsers allow this on direct user gesture (button click)
+  const win = window.open('', '_blank', 'width=600,height=800');
+  if (!win) {
+    alert('Please allow popups for this site to use the Print QR feature, or try the browser print option directly.');
+    return;
+  }
+
+  // Write a fully self-contained print document into the popup
+  // qrcodejs is loaded fresh inside it, generates the QR, then auto-prints
+  win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QR Label — ${a.id}</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#000;
+       display:flex;flex-direction:column;align-items:center;padding:16mm 12mm}
+  h1{font-size:10pt;font-weight:600;color:#444;text-transform:uppercase;
+     letter-spacing:.08em;margin-bottom:6mm;border-bottom:0.5pt solid #ccc;
+     padding-bottom:3mm;width:100%;text-align:center}
+  #qr-wrap{background:#fff;padding:7mm;border:0.5pt solid #ddd;
+           border-radius:3mm;margin-bottom:5mm;line-height:0}
+  #qr-wrap img,#qr-wrap canvas{width:65mm!important;height:65mm!important;
+           display:block;image-rendering:pixelated}
+  .asset-name{font-size:15pt;font-weight:700;text-align:center;margin-bottom:2mm}
+  .asset-id{font-size:12pt;font-family:monospace;font-weight:600;
+            letter-spacing:.07em;text-align:center;color:#333;margin-bottom:5mm}
+  table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:6mm}
+  td{padding:2mm 3mm;border-bottom:0.5pt solid #ddd}
+  td.label{color:#555;font-weight:600;width:40%}
+  footer{font-size:7.5pt;color:#999;text-align:center;
+         border-top:0.5pt solid #ddd;padding-top:3mm;width:100%}
+  @page{size:A4 portrait;margin:0}
+  @media print{body{padding:16mm 12mm}}
+</style>
+</head>
+<body>
+<h1>WorkStation IMS</h1>
+<div id="qr-wrap"></div>
+<div class="asset-name">${a.name}</div>
+<div class="asset-id">${a.id}</div>
+<table>${tableRows}</table>
+<footer>Scan QR code to look up this asset in WorkStation IMS</footer>
+<script>
+  // Generate QR then auto-print once the image is loaded
+  var qr = new QRCode(document.getElementById('qr-wrap'), {
+    text: ${JSON.stringify(a.id)},
+    width: 500, height: 500,
+    colorDark: '#000000', colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.H
   });
-
-  // qrcodejs creates an <img> inside the wrapper.
-  // We MUST wait for that img to finish loading before printing,
-  // otherwise the browser snapshots a blank canvas.
-  // We also explicitly show/hide via JS rather than relying solely
-  // on @media print to override display:none (Chromium bug).
+  var img = document.querySelector('#qr-wrap img');
   function doPrint() {
-    const pc = document.getElementById('print-container');
-    pc.style.display = 'flex';          // make visible NOW in regular DOM
-    requestAnimationFrame(() => {       // let browser paint one frame
-      requestAnimationFrame(() => {     // then a second frame to be safe
-        window.print();
-        // Restore after print dialog closes
-        setTimeout(() => { pc.style.display = ''; }, 500);
-      });
-    });
+    window.focus();
+    window.print();
+    // Close popup after print dialog is dismissed
+    setTimeout(function(){ window.close(); }, 1000);
   }
-
-  const img = wrap.querySelector('img');
   if (img) {
     if (img.complete && img.naturalWidth > 0) {
-      doPrint();
+      setTimeout(doPrint, 100);
     } else {
-      img.onload  = doPrint;
-      img.onerror = doPrint; // print anyway even if img fails
+      img.onload  = function(){ setTimeout(doPrint, 100); };
+      img.onerror = function(){ setTimeout(doPrint, 100); };
     }
   } else {
-    // qrcodejs fell back to canvas — safe to print immediately after paint
-    requestAnimationFrame(() => requestAnimationFrame(doPrint));
+    // canvas fallback
+    setTimeout(doPrint, 300);
   }
+<\/script>
+</body>
+</html>`);
+  win.document.close();
 }
 
 /* ═══════════════════════════════════════════════
