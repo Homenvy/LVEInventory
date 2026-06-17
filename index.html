@@ -163,9 +163,102 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .detail-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-weight:500}
 .detail-value{font-size:14px;color:var(--text)}
 .detail-notes{background:var(--bg2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
-.qr-box{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:1.25rem;background:var(--bg2);border-radius:12px;margin-bottom:1.25rem}
-.qr-box canvas,.qr-box img{border-radius:6px;display:block}
-.qr-id{font-size:13px;font-family:monospace;color:var(--text2);letter-spacing:.05em}
+/* QR box — screen display constrained, but QR itself stays crisp */
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:1.25rem;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:1.25rem}
+.qr-box canvas,.qr-box img{border-radius:4px;display:block;max-width:200px;height:auto}
+.qr-id{font-size:13px;font-family:monospace;color:#333;letter-spacing:.05em;font-weight:600}
+
+/* ── PRINT STYLES ── */
+#print-container{display:none}
+
+@media print {
+  /* Hide everything except the print container */
+  body > *:not(#print-container){ display:none !important }
+  #print-container{
+    display:flex !important;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:20mm 15mm;
+    font-family:system-ui,-apple-system,sans-serif;
+    background:#fff;
+    color:#000;
+    width:100%;
+    min-height:100vh;
+  }
+  #print-logo{
+    font-size:11pt;
+    font-weight:600;
+    color:#444;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:6mm;
+    border-bottom:0.5pt solid #ccc;
+    padding-bottom:4mm;
+    width:100%;
+    text-align:center;
+  }
+  /* QR code — large, high contrast, proper quiet zone */
+  #print-qr-wrap{
+    background:#fff;
+    padding:8mm;           /* quiet zone */
+    border:0.5pt solid #ddd;
+    border-radius:3mm;
+    margin-bottom:6mm;
+    line-height:0;
+  }
+  #print-qr-wrap canvas,
+  #print-qr-wrap img{
+    width:70mm !important;
+    height:70mm !important;
+    display:block;
+    image-rendering:pixelated;
+  }
+  #print-asset-name{
+    font-size:16pt;
+    font-weight:700;
+    color:#000;
+    text-align:center;
+    margin-bottom:2mm;
+  }
+  #print-asset-id{
+    font-size:13pt;
+    font-family:monospace;
+    color:#333;
+    font-weight:600;
+    letter-spacing:.08em;
+    text-align:center;
+    margin-bottom:6mm;
+  }
+  #print-asset-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:10pt;
+    margin-bottom:8mm;
+  }
+  #print-asset-table td{
+    padding:2.5mm 3mm;
+    border-bottom:0.5pt solid #ddd;
+    color:#000;
+  }
+  #print-asset-table td:first-child{
+    color:#555;
+    font-weight:600;
+    width:38%;
+  }
+  #print-footer{
+    font-size:8pt;
+    color:#888;
+    text-align:center;
+    border-top:0.5pt solid #ddd;
+    padding-top:4mm;
+    width:100%;
+  }
+  @page{
+    size:A4 portrait;
+    margin:0;
+  }
+}
 .detail-actions{display:flex;gap:8px;flex-wrap:wrap}
 .detail-actions button{flex:1;min-width:100px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s}
 .detail-actions button:hover{background:var(--bg3)}
@@ -540,6 +633,16 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
     </div>
   </div>
 
+  <!-- PRINT CONTAINER — only visible when printing -->
+  <div id="print-container">
+    <div id="print-logo">WorkStation IMS</div>
+    <div id="print-qr-wrap"></div>
+    <div id="print-asset-name"></div>
+    <div id="print-asset-id"></div>
+    <table id="print-asset-table"></table>
+    <div id="print-footer">Scan QR code to look up this asset in WorkStation IMS</div>
+  </div>
+
 </div><!-- end .app -->
 
 <script>
@@ -773,14 +876,14 @@ function openDetailModal(assetId) {
   const qrContainer = document.getElementById('detail-qr');
   document.getElementById('detail-qr-label').textContent = a.id;
   qrContainer.innerHTML = '';
-  const isDark = document.getElementById('app').getAttribute('data-theme') === 'dark';
+  // Always use dark-on-white regardless of theme — QR spec requires this for physical printing
   new QRCode(qrContainer, {
-    text:          a.id,
-    width:         160,
-    height:        160,
-    colorDark:     isDark ? '#f0f0f0' : '#111111',
-    colorLight:    isDark ? '#0d0d0d' : '#ffffff',
-    correctLevel:  QRCode.CorrectLevel.M
+    text:         a.id,
+    width:        300,
+    height:       300,
+    colorDark:    '#000000',
+    colorLight:   '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
   });
 
   // Detail grid
@@ -805,6 +908,7 @@ function openDetailModal(assetId) {
     <button class="accent" onclick="closeModal('detailBackdrop');navAction('assign');prefillAssetId('assign','${a.id}')"><i class="ti ti-user-plus"></i> Assign</button>
     <button onclick="closeModal('detailBackdrop');navAction('unassign');prefillAssetId('unassign','${a.id}')"><i class="ti ti-user-minus"></i> Unassign</button>
     <button onclick="closeModal('detailBackdrop');navAction('checkin');prefillAssetId('checkin','${a.id}')"><i class="ti ti-square-check"></i> Check in</button>
+    <button onclick="printQR('${a.id}')"><i class="ti ti-printer"></i> Print QR</button>
   `;
 
   openModal('detailBackdrop');
@@ -1047,6 +1151,46 @@ function statusBadge(status) {
   const map = { Active:'green', 'In Service':'amber', Retired:'red', Unassigned:'blue' };
   const cls = map[status] || 'gray';
   return `<span class="badge badge-${cls}">${status}</span>`;
+}
+
+/* ═══════════════════════════════════════════════
+   PRINT QR
+═══════════════════════════════════════════════ */
+function printQR(assetId) {
+  const a = assetData.find(x => x.id === assetId);
+  if (!a) return;
+
+  // Populate print container
+  document.getElementById('print-asset-name').textContent = a.name;
+  document.getElementById('print-asset-id').textContent   = a.id;
+
+  // Build info table for print
+  const rows = [
+    ['Category',       a.category   || '—'],
+    ['Status',         a.status     || '—'],
+    ['Serial',         a.serial     || '—'],
+    ['Assigned to',    a.assignedTo || 'Unassigned'],
+    ['Location',       a.location   || '—'],
+    ['Purchase date',  a.purchaseDate   || '—'],
+    ['Warranty expiry',a.warrantyExpiry || '—'],
+  ];
+  document.getElementById('print-asset-table').innerHTML =
+    rows.map(([l,v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join('');
+
+  // Generate a fresh high-res QR for print (always black on white)
+  const wrap = document.getElementById('print-qr-wrap');
+  wrap.innerHTML = '';
+  new QRCode(wrap, {
+    text:         a.id,
+    width:        500,
+    height:       500,
+    colorDark:    '#000000',
+    colorLight:   '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  // Small delay to let qrcodejs finish rendering, then print
+  setTimeout(() => window.print(), 300);
 }
 
 /* ═══════════════════════════════════════════════
