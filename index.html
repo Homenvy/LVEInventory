@@ -163,7 +163,6 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .detail-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-weight:500}
 .detail-value{font-size:14px;color:var(--text)}
 .detail-notes{background:var(--bg2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
-/* QR box — screen display constrained, but QR itself stays crisp */
 .qr-box{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:1.25rem;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:1.25rem}
 .qr-box canvas,.qr-box img{border-radius:4px;display:block;max-width:200px;height:auto}
 .qr-id{font-size:13px;font-family:monospace;color:#333;letter-spacing:.05em;font-weight:600}
@@ -543,7 +542,6 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
     </div>
   </div>
 
-
 </div><!-- end .app -->
 
 <script>
@@ -581,7 +579,6 @@ function saveOverride(asset) {
   if (idx >= 0) overrides[idx] = asset;
   else overrides.push(asset);
   localStorage.setItem(LS_KEY, JSON.stringify(overrides));
-  // Also update live assetData
   const di = assetData.findIndex(a => a.id === asset.id);
   if (di >= 0) assetData[di] = asset;
   else assetData.push(asset);
@@ -624,7 +621,6 @@ function renderDashboard() {
   document.getElementById('dash-subtitle').textContent  =
     `Tracking ${total} asset${total !== 1 ? 's' : ''} — last synced from assets.json`;
 
-  // Recent list (last 5 by array order)
   const recentEl = document.getElementById('recent-list');
   const recent = [...assetData].slice(-5).reverse();
   if (recent.length === 0) {
@@ -640,7 +636,6 @@ function renderDashboard() {
       </div>`).join('');
   }
 
-  // Needs attention: retired or in-service or warranty expired/soon
   const now = new Date();
   const attn = assetData.filter(a => {
     if (a.status === 'Retired' || a.status === 'In Service') return true;
@@ -665,7 +660,6 @@ function renderDashboard() {
       </div>`).join('');
   }
 
-  // Category breakdown table
   const cats = {};
   assetData.forEach(a => {
     if (!cats[a.category]) cats[a.category] = {total:0,active:0,service:0,retired:0};
@@ -773,11 +767,10 @@ function openDetailModal(assetId) {
   document.getElementById('detail-name').innerHTML = `<i class="ti ti-package"></i> ${a.name}`;
   document.getElementById('detail-id-sub').textContent = a.id + ' · ' + a.category;
 
-  // QR code — clear previous and render fresh
+  // QR code — clear previous and render fresh, always black on white for scan reliability
   const qrContainer = document.getElementById('detail-qr');
   document.getElementById('detail-qr-label').textContent = a.id;
   qrContainer.innerHTML = '';
-  // Always use dark-on-white regardless of theme — QR spec requires this for physical printing
   new QRCode(qrContainer, {
     text:         a.id,
     width:        300,
@@ -787,7 +780,6 @@ function openDetailModal(assetId) {
     correctLevel: QRCode.CorrectLevel.H
   });
 
-  // Detail grid
   const fields = [
     ['Status', statusBadge(a.status)],
     ['Serial', a.serial || '—'],
@@ -804,7 +796,6 @@ function openDetailModal(assetId) {
   if (a.notes) { notesEl.textContent = a.notes; notesEl.style.display = ''; }
   else { notesEl.style.display = 'none'; }
 
-  // Action buttons
   document.getElementById('detail-actions').innerHTML = `
     <button class="accent" onclick="closeModal('detailBackdrop');navAction('assign');prefillAssetId('assign','${a.id}')"><i class="ti ti-user-plus"></i> Assign</button>
     <button onclick="closeModal('detailBackdrop');navAction('unassign');prefillAssetId('unassign','${a.id}')"><i class="ti ti-user-minus"></i> Unassign</button>
@@ -843,7 +834,6 @@ function saveNewAsset() {
   };
   saveOverride(asset);
   renderAll();
-  exportJSON();
   closeModal('addAssetBackdrop');
 }
 
@@ -875,7 +865,6 @@ function confirmAssign() {
   if (document.getElementById('assign-notes').value.trim()) a.notes = document.getElementById('assign-notes').value.trim();
   saveOverride(a);
   renderAll();
-  exportJSON();
   stopCameraAndClose('assignBackdrop');
 }
 
@@ -889,7 +878,6 @@ function confirmUnassign() {
   if (document.getElementById('unassign-notes').value.trim()) a.notes = document.getElementById('unassign-notes').value.trim();
   saveOverride(a);
   renderAll();
-  exportJSON();
   stopCameraAndClose('unassignBackdrop');
 }
 
@@ -905,7 +893,6 @@ function confirmCheckin() {
   if (cond.includes('Damaged')) a.notes = (a.notes ? a.notes + ' | ' : '') + 'Flagged: ' + cond;
   saveOverride(a);
   renderAll();
-  exportJSON();
   stopCameraAndClose('checkinBackdrop');
 }
 
@@ -918,47 +905,89 @@ function scanManualLookup() {
 
 /* ═══════════════════════════════════════════════
    CAMERA ENGINE
+   Uses setInterval 400ms + ImageCapture.grabFrame()
+   for full laptop webcam compatibility.
+   Falls back gracefully when BarcodeDetector or
+   ImageCapture are unavailable.
 ═══════════════════════════════════════════════ */
-let activeStreams = {};
+let activeStreams  = {};   // prefix → MediaStream
+let activeScanners = {};  // prefix → intervalId
 
 async function startCamera(prefix, onScan) {
-  const video  = document.getElementById(prefix + '-video');
-  const errEl  = document.getElementById(prefix + '-error');
-  const resEl  = document.getElementById(prefix + '-result');
+  const video = document.getElementById(prefix + '-video');
+  const errEl = document.getElementById(prefix + '-error');
+  const resEl = document.getElementById(prefix + '-result');
   if (resEl) resEl.classList.add('hidden');
   if (errEl) errEl.classList.add('hidden');
+
   if (!navigator.mediaDevices?.getUserMedia) {
     showCamError(prefix, 'Camera not supported in this browser.');
     return;
   }
+  if (!('BarcodeDetector' in window)) {
+    showCamError(prefix, 'QR scanning not supported in this browser. Use manual entry below.');
+    return;
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal:'environment' }, width:{ideal:1280}, height:{ideal:720} }
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     activeStreams[prefix] = stream;
     video.srcObject = stream;
     await video.play();
-    if ('BarcodeDetector' in window) {
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
-      pollQR(prefix, video, detector, onScan);
-    }
-  } catch(e) {
-    showCamError(prefix, 'Camera access denied. Please allow camera permissions.');
-  }
-}
 
-function pollQR(prefix, video, detector, onScan) {
-  if (!activeStreams[prefix]) return;
-  detector.detect(video).then(codes => {
-    if (codes.length > 0) {
-      const val = codes[0].rawValue;
-      stopStream(prefix);
-      showCamResult(prefix, 'Scanned: ' + val);
-      if (onScan) onScan(val);
-    } else {
-      requestAnimationFrame(() => pollQR(prefix, video, detector, onScan));
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+
+    // Try ImageCapture.grabFrame() first — needed for many laptop webcams where
+    // BarcodeDetector.detect(videoElement) returns nothing due to timing issues.
+    const track = stream.getVideoTracks()[0];
+    let useImageCapture = false;
+    let imageCapture = null;
+
+    if (typeof ImageCapture !== 'undefined') {
+      try {
+        imageCapture = new ImageCapture(track);
+        // Quick test grab to confirm it works
+        await imageCapture.grabFrame();
+        useImageCapture = true;
+      } catch(e) {
+        useImageCapture = false;
+      }
     }
-  }).catch(() => requestAnimationFrame(() => pollQR(prefix, video, detector, onScan)));
+
+    const intervalId = setInterval(async () => {
+      if (!activeStreams[prefix]) { clearInterval(intervalId); return; }
+      try {
+        let codes = [];
+        if (useImageCapture && imageCapture) {
+          const bitmap = await imageCapture.grabFrame();
+          codes = await detector.detect(bitmap);
+          bitmap.close && bitmap.close();
+        } else {
+          // Fallback: detect directly from video element
+          if (video.readyState >= 2) {
+            codes = await detector.detect(video);
+          }
+        }
+        if (codes.length > 0) {
+          const val = codes[0].rawValue;
+          clearInterval(intervalId);
+          delete activeScanners[prefix];
+          stopStream(prefix);
+          showCamResult(prefix, 'Scanned: ' + val);
+          if (onScan) onScan(val);
+        }
+      } catch(e) {
+        // Frame grab can fail transiently; keep polling
+      }
+    }, 400);
+
+    activeScanners[prefix] = intervalId;
+
+  } catch(e) {
+    showCamError(prefix, 'Camera access denied. Please allow camera permissions and try again.');
+  }
 }
 
 function showCamResult(prefix, msg) {
@@ -972,6 +1001,10 @@ function showCamError(prefix, msg) {
   if (el && tx) { tx.textContent = msg; el.classList.remove('hidden'); }
 }
 function stopStream(prefix) {
+  if (activeScanners[prefix]) {
+    clearInterval(activeScanners[prefix]);
+    delete activeScanners[prefix];
+  }
   if (activeStreams[prefix]) {
     activeStreams[prefix].getTracks().forEach(t => t.stop());
     delete activeStreams[prefix];
@@ -1055,99 +1088,54 @@ function statusBadge(status) {
 }
 
 /* ═══════════════════════════════════════════════
-   PRINT QR — opens a dedicated print window
-   (bypasses all display:none / @media print
-   timing issues in Chromium-based browsers)
+   PRINT QR
+   Opens a popup window — A6 size (105×148mm)
+   Contains only: QR code (300px crisp) + asset ID.
+   Triggers auto-print then self-closes.
 ═══════════════════════════════════════════════ */
 function printQR(assetId) {
   const a = assetData.find(x => x.id === assetId);
   if (!a) return;
 
-  const rows = [
-    ['Category',        a.category        || '—'],
-    ['Status',          a.status          || '—'],
-    ['Serial',          a.serial          || '—'],
-    ['Assigned to',     a.assignedTo      || 'Unassigned'],
-    ['Location',        a.location        || '—'],
-    ['Purchase date',   a.purchaseDate    || '—'],
-    ['Warranty expiry', a.warrantyExpiry  || '—'],
-  ];
-
-  const tableRows = rows.map(([l,v]) =>
-    `<tr><td class="label">${l}</td><td>${v}</td></tr>`
-  ).join('');
-
-  // Open a blank popup — browsers allow this on direct user gesture (button click)
-  const win = window.open('', '_blank', 'width=600,height=800');
+  const win = window.open('', '_blank', 'width=420,height=600');
   if (!win) {
-    alert('Please allow popups for this site to use the Print QR feature, or try the browser print option directly.');
+    alert('Please allow popups for this site to use the Print QR feature.');
     return;
   }
 
-  // Write a fully self-contained print document into the popup
-  // qrcodejs is loaded fresh inside it, generates the QR, then auto-prints
   win.document.write(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>QR Label — ${a.id}</title>
+<title>QR — ${a.id}</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,-apple-system,sans-serif;background:#fff;color:#000;
-       display:flex;flex-direction:column;align-items:center;padding:16mm 12mm}
-  h1{font-size:10pt;font-weight:600;color:#444;text-transform:uppercase;
-     letter-spacing:.08em;margin-bottom:6mm;border-bottom:0.5pt solid #ccc;
-     padding-bottom:3mm;width:100%;text-align:center}
-  #qr-wrap{background:#fff;padding:7mm;border:0.5pt solid #ddd;
-           border-radius:3mm;margin-bottom:5mm;line-height:0}
-  #qr-wrap img,#qr-wrap canvas{width:65mm!important;height:65mm!important;
-           display:block;image-rendering:pixelated}
-  .asset-name{font-size:15pt;font-weight:700;text-align:center;margin-bottom:2mm}
-  .asset-id{font-size:12pt;font-family:monospace;font-weight:600;
-            letter-spacing:.07em;text-align:center;color:#333;margin-bottom:5mm}
-  table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:6mm}
-  td{padding:2mm 3mm;border-bottom:0.5pt solid #ddd}
-  td.label{color:#555;font-weight:600;width:40%}
-  footer{font-size:7.5pt;color:#999;text-align:center;
-         border-top:0.5pt solid #ddd;padding-top:3mm;width:100%}
-  @page{size:A4 portrait;margin:0}
-  @media print{body{padding:16mm 12mm}}
+  html,body{width:105mm;height:148mm;background:#fff;color:#000}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6mm;padding:10mm}
+  #qr-wrap{line-height:0}
+  #qr-wrap img,#qr-wrap canvas{width:75mm!important;height:75mm!important;display:block;image-rendering:pixelated}
+  .asset-id{font-family:monospace;font-size:14pt;font-weight:700;letter-spacing:.06em;text-align:center;color:#000}
+  @page{size:A6 portrait;margin:0}
+  @media print{html,body{width:105mm;height:148mm}}
 </style>
 </head>
 <body>
-<h1>WorkStation IMS</h1>
 <div id="qr-wrap"></div>
-<div class="asset-name">${a.name}</div>
 <div class="asset-id">${a.id}</div>
-<table>${tableRows}</table>
-<footer>Scan QR code to look up this asset in WorkStation IMS</footer>
 <script>
-  // Generate QR then auto-print once the image is loaded
   var qr = new QRCode(document.getElementById('qr-wrap'), {
     text: ${JSON.stringify(a.id)},
     width: 500, height: 500,
     colorDark: '#000000', colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.H
   });
+  function doPrint() { window.focus(); window.print(); setTimeout(function(){ window.close(); }, 1200); }
   var img = document.querySelector('#qr-wrap img');
-  function doPrint() {
-    window.focus();
-    window.print();
-    // Close popup after print dialog is dismissed
-    setTimeout(function(){ window.close(); }, 1000);
-  }
   if (img) {
-    if (img.complete && img.naturalWidth > 0) {
-      setTimeout(doPrint, 100);
-    } else {
-      img.onload  = function(){ setTimeout(doPrint, 100); };
-      img.onerror = function(){ setTimeout(doPrint, 100); };
-    }
-  } else {
-    // canvas fallback
-    setTimeout(doPrint, 300);
-  }
+    if (img.complete && img.naturalWidth > 0) { setTimeout(doPrint, 120); }
+    else { img.onload = function(){ setTimeout(doPrint, 120); }; img.onerror = function(){ setTimeout(doPrint, 120); }; }
+  } else { setTimeout(doPrint, 350); }
 <\/script>
 </body>
 </html>`);
@@ -1156,6 +1144,8 @@ function printQR(assetId) {
 
 /* ═══════════════════════════════════════════════
    ORBITAL WHEEL ENGINE
+   Radial thumb menu (mobile, bottom-right)
+   Spins with momentum via touch/mouse drag
 ═══════════════════════════════════════════════ */
 const ITEMS = [
   { id:'oi-dashboard', action: () => showPage('dashboard') },
@@ -1303,7 +1293,6 @@ window.addEventListener('resize', ()=>{ if(orbOpen){drawRing();positionItems();s
    INIT
 ═══════════════════════════════════════════════ */
 applyTheme(localStorage.getItem('ims-theme')||'light');
-// Set today's date on assign date field
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('assign-date').value = today;
 loadData();
