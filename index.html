@@ -961,17 +961,36 @@ async function startCamera(prefix, onScan) {
       } catch(e) { imageCapture = null; }
     }
 
-    let scanCount = 0;
+    // Off-screen canvas for canvas-path detection (works where video/bitmap paths fail)
+    const offCanvas = document.createElement('canvas');
+    const offCtx    = offCanvas.getContext('2d');
+
     const intervalId = setInterval(async () => {
       if (!activeStreams[prefix]) { clearInterval(intervalId); return; }
       try {
         let codes = [];
         if (imageCapture) {
+          // Path 1: ImageCapture → bitmap (best for desktop webcams)
           const bitmap = await imageCapture.grabFrame();
           codes = await detector.detect(bitmap);
           bitmap.close && bitmap.close();
+          // Path 2: if bitmap gave nothing, try canvas draw from video
+          if (codes.length === 0 && video.readyState >= 2) {
+            offCanvas.width  = video.videoWidth  || 640;
+            offCanvas.height = video.videoHeight || 480;
+            offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
+            codes = await detector.detect(offCanvas);
+          }
         } else if (video.readyState >= 2) {
+          // Path 3: direct video element (mobile)
           codes = await detector.detect(video);
+          // Path 4: canvas fallback if direct video returns nothing
+          if (codes.length === 0) {
+            offCanvas.width  = video.videoWidth  || 640;
+            offCanvas.height = video.videoHeight || 480;
+            offCtx.drawImage(video, 0, 0, offCanvas.width, offCanvas.height);
+            codes = await detector.detect(offCanvas);
+          }
         }
         if (codes.length > 0) {
           const val = codes[0].rawValue;
@@ -984,7 +1003,6 @@ async function startCamera(prefix, onScan) {
           showCamResult(prefix, 'Scanned: ' + val);
           if (onScan) onScan(val);
         }
-        scanCount++;
       } catch(e) { /* transient frame error — keep polling */ }
     }, 400);
 
@@ -1065,14 +1083,13 @@ async function takeSnapshot(prefix, stream, onScan) {
   // Show preview
   canvas.style.display = 'block';
 
-  // Try BarcodeDetector on the bitmap
+  // Try BarcodeDetector on the canvas directly — passing canvas avoids the
+  // toBlob→createImageBitmap round-trip which silently fails on webcam streams
+  // in Chromium. HTMLCanvasElement is a valid ImageBitmapSource natively.
   if ('BarcodeDetector' in window) {
     try {
-      const detector  = new BarcodeDetector({ formats: ['qr_code'] });
-      const blob      = await new Promise(r => canvas.toBlob(r, 'image/png'));
-      const bmp       = await createImageBitmap(blob);
-      const codes     = await detector.detect(bmp);
-      bmp.close && bmp.close();
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const codes    = await detector.detect(canvas);
       if (codes.length > 0) {
         const val = codes[0].rawValue;
         // Stop auto-scan loop if running
