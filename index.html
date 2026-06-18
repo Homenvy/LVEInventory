@@ -174,6 +174,10 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .detail-actions button:hover{background:var(--bg3)}
 .detail-actions button.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
 .detail-actions button.accent:hover{opacity:.88}
+.asset-map{width:100%;height:200px;border-radius:10px;border:.5px solid var(--border);margin-bottom:1.25rem;overflow:hidden;background:var(--bg2)}
+.asset-map iframe{width:100%;height:100%;border:none;display:block;border-radius:10px}
+.map-addr{font-size:12px;color:var(--text3);margin-top:-1rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:5px;line-height:1.4}
+.map-addr i{font-size:14px;flex-shrink:0;margin-top:1px}
 
 /* ORBITAL WHEEL */
 .orbital-wrap{display:none;position:fixed;bottom:28px;right:22px;z-index:203;touch-action:none}
@@ -213,7 +217,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v14</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v15</span></span></div>
     <div class="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -512,6 +516,10 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
       <button class="modal-close" onclick="stopCameraAndClose('checkinBackdrop')"><i class="ti ti-x"></i></button>
       <h2 class="modal-h2"><i class="ti ti-square-check"></i> Check in asset</h2>
       <p class="modal-sub">Scan the QR code to check an asset back into inventory</p>
+      <div id="checkin-geo-status" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);margin-bottom:.75rem;padding:8px 12px;background:var(--bg2);border-radius:8px">
+        <i class="ti ti-map-pin" style="font-size:16px"></i>
+        <span id="checkin-geo-text">Requesting location…</span>
+      </div>
       <div class="qr-viewport" id="checkin-viewport">
         <video id="checkin-video" autoplay playsinline muted></video>
         <div class="qr-frame">
@@ -768,7 +776,7 @@ function openDetailModal(assetId) {
   document.getElementById('detail-name').innerHTML = `<i class="ti ti-package"></i> ${a.name}`;
   document.getElementById('detail-id-sub').textContent = a.id + ' · ' + a.category;
 
-  // QR code — clear previous and render fresh, always black on white for scan reliability
+  // QR code
   const qrContainer = document.getElementById('detail-qr');
   document.getElementById('detail-qr-label').textContent = a.id;
   qrContainer.innerHTML = '';
@@ -781,6 +789,21 @@ function openDetailModal(assetId) {
     correctLevel: QRCode.CorrectLevel.H
   });
 
+  // Map — shown only when geo coordinates exist on asset
+  let mapHTML = '';
+  if (a.geoLat && a.geoLng) {
+    const lat  = parseFloat(a.geoLat);
+    const lng  = parseFloat(a.geoLng);
+    const zoom = 17;
+    const bbox = [lng-0.003, lat-0.002, lng+0.003, lat+0.002].join('%2C');
+    const src  = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
+    const addr = a.geoAddr || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const mapsUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=${zoom}/${lat}/${lng}`;
+    mapHTML = `
+      <div class="asset-map"><iframe src="${src}" loading="lazy" title="Asset location"></iframe></div>
+      <p class="map-addr"><i class="ti ti-map-pin" style="color:var(--accent)"></i><span>${addr} &nbsp;<a href="${mapsUrl}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-size:11px">Open in Maps ↗</a></span></p>`;
+  }
+
   const fields = [
     ['Status', statusBadge(a.status)],
     ['Serial', a.serial || '—'],
@@ -789,6 +812,17 @@ function openDetailModal(assetId) {
     ['Purchase date', a.purchaseDate || '—'],
     ['Warranty expiry', a.warrantyExpiry || '—'],
   ];
+
+  // Inject map between QR box and detail grid
+  const existingMap = document.getElementById('detail-map-wrap');
+  if (existingMap) existingMap.remove();
+  if (mapHTML) {
+    const wrap = document.createElement('div');
+    wrap.id = 'detail-map-wrap';
+    wrap.innerHTML = mapHTML;
+    document.getElementById('detail-qr').closest('.qr-box').insertAdjacentElement('afterend', wrap);
+  }
+
   document.getElementById('detail-grid').innerHTML = fields.map(([label, val]) =>
     `<div class="detail-field"><span class="detail-label">${label}</span><span class="detail-value">${val}</span></div>`
   ).join('');
@@ -882,7 +916,7 @@ function confirmUnassign() {
   stopCameraAndClose('unassignBackdrop');
 }
 
-function confirmCheckin() {
+async function confirmCheckin() {
   const id = document.getElementById('checkin-asset-id').value.trim();
   if (!id) { alert('Please enter or scan an asset ID.'); return; }
   const a = assetData.find(x => x.id.toLowerCase() === id.toLowerCase());
@@ -892,9 +926,57 @@ function confirmCheckin() {
   const cond = document.getElementById('checkin-condition').value;
   if (cond.includes('service')) a.status = 'In Service';
   if (cond.includes('Damaged')) a.notes = (a.notes ? a.notes + ' | ' : '') + 'Flagged: ' + cond;
+  // Attach current geo coordinates if available
+  if (window._checkinGeo) {
+    a.geoLat  = window._checkinGeo.lat;
+    a.geoLng  = window._checkinGeo.lng;
+    a.geoAddr = window._checkinGeo.addr || '';
+    a.location = window._checkinGeo.addr || a.location;
+  }
   saveOverride(a);
   renderAll();
   stopCameraAndClose('checkinBackdrop');
+  // Open detail to show map straight away
+  setTimeout(() => openDetailModal(a.id), 250);
+}
+
+/* Geolocation + reverse geocode — called when checkin modal opens */
+function startCheckinGeo() {
+  window._checkinGeo = null;
+  const statusEl = document.getElementById('checkin-geo-text');
+  if (!navigator.geolocation) {
+    if (statusEl) statusEl.textContent = 'Geolocation not supported by this browser.';
+    return;
+  }
+  if (statusEl) statusEl.textContent = 'Requesting location…';
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      window._checkinGeo = { lat, lng, addr: '' };
+      if (statusEl) statusEl.textContent = `Got fix: ${lat.toFixed(5)}, ${lng.toFixed(5)} — resolving address…`;
+      // Reverse geocode with Nominatim (free, no key)
+      try {
+        const res  = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+          { headers: { 'Accept-Language': 'en', 'User-Agent': 'WorkStationIMS/1.0' } }
+        );
+        const data = await res.json();
+        const addr = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        window._checkinGeo.addr = addr;
+        if (statusEl) statusEl.innerHTML = `<i class="ti ti-map-pin" style="font-size:14px;color:var(--accent)"></i>&nbsp;${addr}`;
+      } catch(e) {
+        window._checkinGeo.addr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        if (statusEl) statusEl.textContent = window._checkinGeo.addr;
+      }
+    },
+    err => {
+      window._checkinGeo = null;
+      const msgs = { 1:'Location permission denied.', 2:'Location unavailable.', 3:'Location request timed out.' };
+      if (statusEl) statusEl.textContent = msgs[err.code] || 'Location unavailable.';
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+  );
 }
 
 function scanManualLookup() {
@@ -1141,6 +1223,7 @@ function navAction(action) {
     });
   } else if (action === 'checkin') {
     openModal('checkinBackdrop');
+    startCheckinGeo();
     startCamera('checkin', val => {
       document.getElementById('checkin-asset-id').value = val;
       lookupAssetById('checkin');
