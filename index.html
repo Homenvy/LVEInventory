@@ -905,13 +905,21 @@ function scanManualLookup() {
 
 /* ═══════════════════════════════════════════════
    CAMERA ENGINE
-   Uses setInterval 400ms + ImageCapture.grabFrame()
-   for full laptop webcam compatibility.
-   Falls back gracefully when BarcodeDetector or
-   ImageCapture are unavailable.
+   Strategy (in order of preference):
+   1. ImageCapture.grabFrame() → BarcodeDetector  (best for desktop webcams)
+   2. BarcodeDetector.detect(videoElement)         (mobile / when IC absent)
+   3. Snapshot button → canvas → BarcodeDetector  (fallback if auto-scan stalls)
+   4. Snapshot preview for manual ID entry         (last resort, no BarcodeDetector)
+
+   The camera ALWAYS starts — no early bail on missing APIs.
+   Snapshot button appears after SNAPSHOT_DELAY ms of no result,
+   or immediately if BarcodeDetector is absent.
 ═══════════════════════════════════════════════ */
-let activeStreams  = {};   // prefix → MediaStream
-let activeScanners = {};  // prefix → intervalId
+let activeStreams   = {};   // prefix → MediaStream
+let activeScanners  = {};   // prefix → intervalId
+let snapshotTimers  = {};   // prefix → timeoutId
+
+const SNAPSHOT_DELAY = 5000; // ms before snapshot button surfaces
 
 async function startCamera(prefix, onScan) {
   const video = document.getElementById(prefix + '-video');
@@ -919,13 +927,11 @@ async function startCamera(prefix, onScan) {
   const resEl = document.getElementById(prefix + '-result');
   if (resEl) resEl.classList.add('hidden');
   if (errEl) errEl.classList.add('hidden');
+  removeSnapshotUI(prefix);
 
   if (!navigator.mediaDevices?.getUserMedia) {
     showCamError(prefix, 'Camera not supported in this browser.');
-    return;
-  }
-  if (!('BarcodeDetector' in window)) {
-    showCamError(prefix, 'QR scanning not supported in this browser. Use manual entry below.');
+    showSnapshotButton(prefix, null, onScan); // manual-only mode
     return;
   }
 
@@ -937,59 +943,165 @@ async function startCamera(prefix, onScan) {
     video.srcObject = stream;
     await video.play();
 
+    // No BarcodeDetector → camera shows live, snapshot button appears immediately
+    if (!('BarcodeDetector' in window)) {
+      showSnapshotButton(prefix, stream, onScan);
+      return;
+    }
+
     const detector = new BarcodeDetector({ formats: ['qr_code'] });
-
-    // Try ImageCapture.grabFrame() first — needed for many laptop webcams where
-    // BarcodeDetector.detect(videoElement) returns nothing due to timing issues.
     const track = stream.getVideoTracks()[0];
-    let useImageCapture = false;
-    let imageCapture = null;
 
+    // Probe ImageCapture availability
+    let imageCapture = null;
     if (typeof ImageCapture !== 'undefined') {
       try {
         imageCapture = new ImageCapture(track);
-        // Quick test grab to confirm it works
-        await imageCapture.grabFrame();
-        useImageCapture = true;
-      } catch(e) {
-        useImageCapture = false;
-      }
+        await imageCapture.grabFrame(); // confirm it actually works
+      } catch(e) { imageCapture = null; }
     }
 
+    let scanCount = 0;
     const intervalId = setInterval(async () => {
       if (!activeStreams[prefix]) { clearInterval(intervalId); return; }
       try {
         let codes = [];
-        if (useImageCapture && imageCapture) {
+        if (imageCapture) {
           const bitmap = await imageCapture.grabFrame();
           codes = await detector.detect(bitmap);
           bitmap.close && bitmap.close();
-        } else {
-          // Fallback: detect directly from video element
-          if (video.readyState >= 2) {
-            codes = await detector.detect(video);
-          }
+        } else if (video.readyState >= 2) {
+          codes = await detector.detect(video);
         }
         if (codes.length > 0) {
           const val = codes[0].rawValue;
           clearInterval(intervalId);
           delete activeScanners[prefix];
+          clearTimeout(snapshotTimers[prefix]);
+          delete snapshotTimers[prefix];
           stopStream(prefix);
+          removeSnapshotUI(prefix);
           showCamResult(prefix, 'Scanned: ' + val);
           if (onScan) onScan(val);
         }
-      } catch(e) {
-        // Frame grab can fail transiently; keep polling
-      }
+        scanCount++;
+      } catch(e) { /* transient frame error — keep polling */ }
     }, 400);
 
     activeScanners[prefix] = intervalId;
+
+    // Surface snapshot button after SNAPSHOT_DELAY if auto-scan hasn't fired
+    snapshotTimers[prefix] = setTimeout(() => {
+      if (activeStreams[prefix]) showSnapshotButton(prefix, stream, onScan);
+    }, SNAPSHOT_DELAY);
 
   } catch(e) {
     showCamError(prefix, 'Camera access denied. Please allow camera permissions and try again.');
   }
 }
 
+/* ── Snapshot UI ─────────────────────────────── */
+function showSnapshotButton(prefix, stream, onScan) {
+  removeSnapshotUI(prefix); // no duplicates
+  const viewport = document.getElementById(prefix + '-viewport');
+  if (!viewport) return;
+
+  const wrap = document.createElement('div');
+  wrap.id = prefix + '-snap-wrap';
+  wrap.style.cssText = 'margin-bottom:.75rem';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-full btn-primary';
+  btn.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:.5rem';
+  btn.innerHTML = '<i class="ti ti-camera"></i> Take snapshot to scan';
+  btn.onclick = () => takeSnapshot(prefix, stream, onScan);
+
+  const hint = document.createElement('p');
+  hint.style.cssText = 'font-size:12px;color:var(--text3);text-align:center';
+  hint.textContent = 'Hold the QR code steady, then tap the button';
+
+  // Canvas for snapshot preview (hidden until used)
+  const canvas = document.createElement('canvas');
+  canvas.id = prefix + '-snap-canvas';
+  canvas.style.cssText = 'display:none;width:100%;border-radius:8px;margin-top:.5rem;border:.5px solid var(--border)';
+
+  wrap.appendChild(btn);
+  wrap.appendChild(hint);
+  wrap.appendChild(canvas);
+  viewport.insertAdjacentElement('afterend', wrap);
+}
+
+async function takeSnapshot(prefix, stream, onScan) {
+  const video  = document.getElementById(prefix + '-video');
+  const canvas = document.getElementById(prefix + '-snap-canvas');
+  const btn    = document.querySelector('#' + prefix + '-snap-wrap button');
+  if (!canvas) return;
+
+  // Grab frame
+  let imageBitmap = null;
+  const track = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+  if (track && typeof ImageCapture !== 'undefined') {
+    try {
+      const ic = new ImageCapture(track);
+      imageBitmap = await ic.grabFrame();
+    } catch(e) {}
+  }
+
+  // Draw to canvas (from bitmap or video fallback)
+  const w = imageBitmap ? imageBitmap.width  : (video?.videoWidth  || 640);
+  const h = imageBitmap ? imageBitmap.height : (video?.videoHeight || 480);
+  canvas.width = w; canvas.height = h;
+  const ctx2d = canvas.getContext('2d');
+  if (imageBitmap) {
+    ctx2d.drawImage(imageBitmap, 0, 0);
+    imageBitmap.close && imageBitmap.close();
+  } else if (video && video.readyState >= 2) {
+    ctx2d.drawImage(video, 0, 0, w, h);
+  } else {
+    showCamError(prefix, 'Could not capture frame. Try again.');
+    return;
+  }
+
+  // Show preview
+  canvas.style.display = 'block';
+
+  // Try BarcodeDetector on the bitmap
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector  = new BarcodeDetector({ formats: ['qr_code'] });
+      const blob      = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      const bmp       = await createImageBitmap(blob);
+      const codes     = await detector.detect(bmp);
+      bmp.close && bmp.close();
+      if (codes.length > 0) {
+        const val = codes[0].rawValue;
+        // Stop auto-scan loop if running
+        if (activeScanners[prefix]) { clearInterval(activeScanners[prefix]); delete activeScanners[prefix]; }
+        stopStream(prefix);
+        removeSnapshotUI(prefix);
+        showCamResult(prefix, 'Scanned: ' + val);
+        if (onScan) onScan(val);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Decode failed — show the snapshot and ask user to enter ID manually
+  if (btn) {
+    btn.innerHTML = '<i class="ti ti-refresh"></i> Retake snapshot';
+    btn.style.background = 'var(--bg3)';
+    btn.style.color = 'var(--text)';
+    btn.style.borderColor = 'var(--border2)';
+  }
+  showCamError(prefix, 'Could not decode QR from snapshot. Enter the asset ID below, or retake.');
+}
+
+function removeSnapshotUI(prefix) {
+  const el = document.getElementById(prefix + '-snap-wrap');
+  if (el) el.remove();
+}
+
+/* ── Stream helpers ──────────────────────────── */
 function showCamResult(prefix, msg) {
   const el = document.getElementById(prefix + '-result');
   const tx = document.getElementById(prefix + '-result-text');
@@ -1001,20 +1113,16 @@ function showCamError(prefix, msg) {
   if (el && tx) { tx.textContent = msg; el.classList.remove('hidden'); }
 }
 function stopStream(prefix) {
-  if (activeScanners[prefix]) {
-    clearInterval(activeScanners[prefix]);
-    delete activeScanners[prefix];
-  }
-  if (activeStreams[prefix]) {
-    activeStreams[prefix].getTracks().forEach(t => t.stop());
-    delete activeStreams[prefix];
-  }
+  if (activeScanners[prefix])  { clearInterval(activeScanners[prefix]);  delete activeScanners[prefix]; }
+  if (snapshotTimers[prefix])  { clearTimeout(snapshotTimers[prefix]);   delete snapshotTimers[prefix]; }
+  if (activeStreams[prefix])   { activeStreams[prefix].getTracks().forEach(t => t.stop()); delete activeStreams[prefix]; }
   const v = document.getElementById(prefix + '-video');
   if (v) v.srcObject = null;
 }
 function stopCameraAndClose(backdropId) {
   const prefix = backdropId.replace('Backdrop','');
   stopStream(prefix);
+  removeSnapshotUI(prefix);
   closeModal(backdropId);
 }
 
