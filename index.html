@@ -244,7 +244,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.26</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.27</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -318,6 +318,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
           <option value="">All categories</option>
           <option>Workstation</option>
           <option>Laptop</option>
+          <option>Tablet</option>
           <option>Monitor</option>
           <option>Server</option>
           <option>Networking</option>
@@ -354,6 +355,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
       <div class="page-toolbar">
         <input class="search-box" type="search" id="admin-search" placeholder="Search users…" oninput="renderAdminPage()">
         <button class="nav-btn primary" onclick="openAddUserModal()"><i class="ti ti-user-plus"></i> Add user</button>
+        <button class="nav-btn" id="admin-export-users-btn" onclick="exportUsersJSON()" style="display:none" title="Master only"><i class="ti ti-download"></i> Export users.json</button>
       </div>
       <div id="admin-user-list"></div>
 
@@ -391,7 +393,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
   <div class="orbit-item" id="oi-reports"><i class="ti ti-chart-bar"></i><span>Reports</span></div>
   <div class="orbit-item" id="oi-login"><i class="ti ti-lock"></i><span>Sign in</span></div>
   <div class="orbit-item" id="oi-signout" style="display:none"><i class="ti ti-logout"></i><span>Sign out</span></div>
-  <div class="orbit-item" id="oi-profile" style="display:none;flex-direction:column"><span id="oi-profile-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;margin-bottom:2px"></span><span>Profile</span></div>
+  <div class="orbit-item" id="oi-profile" style="display:none"><span id="oi-profile-avatar" style="width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600"></span></div>
   <div class="orbit-item" id="oi-admin" style="display:none"><i class="ti ti-shield"></i><span>Admin</span></div>
   <div class="orbit-item" id="oi-scan"><i class="ti ti-scan"></i><span>Scan</span></div>
   <div class="orbit-item" id="oi-checkin"><i class="ti ti-square-check"></i><span>Check in</span></div>
@@ -528,6 +530,19 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         <p id="eu-role-locked-msg" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin-top:.35rem"><i class="ti ti-lock"></i> Only a Master account can change a Master's role</p>
       </div>
 
+      <!-- Avatar color picker -->
+      <div style="margin-bottom:1rem;background:var(--bg2);border-radius:10px;padding:.75rem 1rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.6rem;text-align:center"><i class="ti ti-palette"></i> Avatar colour</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:.5rem" id="eu-color-swatches">
+          <!-- populated by JS -->
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <label style="font-size:12px;color:var(--text3)">Custom:</label>
+          <input type="color" id="eu-color-custom" style="width:36px;height:28px;border:none;background:none;cursor:pointer;border-radius:6px;padding:0" oninput="selectCustomColor(this.value)">
+        </div>
+      </div>
+      <input type="hidden" id="eu-avatar-color">
+
       <!-- Name edit -->
       <div class="form-group" style="margin-bottom:.75rem">
         <label style="text-align:center;display:block">Display name</label>
@@ -569,7 +584,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
       <div class="form-row">
         <div class="form-group"><label>Category</label>
           <select class="form-input" id="new-category">
-            <option value="">Select…</option><option>Workstation</option><option>Laptop</option><option>Monitor</option><option>Server</option><option>Networking</option><option>Peripheral</option><option>Other</option>
+            <option value="">Select…</option><option>Workstation</option><option>Laptop</option><option>Tablet</option><option>Monitor</option><option>Server</option><option>Networking</option><option>Peripheral</option><option>Other</option>
           </select>
         </div>
         <div class="form-group"><label>Status</label>
@@ -609,6 +624,38 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         <span class="qr-id" id="detail-qr-label"></span>
       </div>
       <div class="detail-grid" id="detail-grid"></div>
+      <div id="detail-edit-form" style="display:none;margin-bottom:1.25rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.75rem;text-align:center"><i class="ti ti-pencil"></i> Edit asset details</div>
+        <div class="form-row" style="margin-bottom:.5rem">
+          <div class="form-group" style="margin-bottom:.5rem"><label>Asset name</label><input type="text" class="form-input" id="edit-name" style="font-size:13px;padding:7px 10px"></div>
+          <div class="form-group" style="margin-bottom:.5rem"><label>Category</label>
+            <select class="form-input" id="edit-category" style="font-size:13px;padding:7px 10px">
+              <option>Workstation</option><option>Laptop</option><option>Tablet</option><option>Monitor</option><option>Server</option><option>Networking</option><option>Peripheral</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:.5rem">
+          <div class="form-group" style="margin-bottom:.5rem"><label>Status</label>
+            <select class="form-input" id="edit-status" style="font-size:13px;padding:7px 10px">
+              <option>Active</option><option>Unassigned</option><option>In Service</option><option>Retired</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:.5rem"><label>Serial number</label><input type="text" class="form-input" id="edit-serial" style="font-size:13px;padding:7px 10px"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:.5rem">
+          <div class="form-group" style="margin-bottom:.5rem"><label>Assigned to</label><input type="text" class="form-input" id="edit-assignedTo" style="font-size:13px;padding:7px 10px"></div>
+          <div class="form-group" style="margin-bottom:.5rem"><label>Location</label><input type="text" class="form-input" id="edit-location" style="font-size:13px;padding:7px 10px"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:.5rem">
+          <div class="form-group" style="margin-bottom:.5rem"><label>Purchase date</label><input type="date" class="form-input" id="edit-purchase" style="font-size:13px;padding:7px 10px"></div>
+          <div class="form-group" style="margin-bottom:.5rem"><label>Warranty expiry</label><input type="date" class="form-input" id="edit-warranty" style="font-size:13px;padding:7px 10px"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:.5rem"><label>Notes</label><textarea class="form-input" id="edit-notes" style="font-size:13px;padding:7px 10px;min-height:60px"></textarea></div>
+        <div style="display:flex;gap:8px;margin-top:.5rem">
+          <button class="btn-full btn-ghost" onclick="cancelEditAsset()" style="font-size:13px;padding:8px"><i class="ti ti-x"></i> Cancel</button>
+          <button class="btn-full btn-primary" onclick="saveEditAsset()" style="font-size:13px;padding:8px"><i class="ti ti-check"></i> Save changes</button>
+        </div>
+      </div>
       <div class="detail-notes" id="detail-notes" style="display:none"></div>
       <div class="detail-actions" id="detail-actions"></div>
     </div>
@@ -800,6 +847,26 @@ function exportJSON() {
   a.click();
 }
 
+function exportUsersJSON() {
+  if (!currentUser || currentUser.role !== 'Master') return;
+  // Strip sensitive fields (passwordHash, salt) — export display-safe version
+  const safe = userData.map(u => ({
+    username: u.username,
+    passwordHash: u.passwordHash,
+    salt: u.salt,
+    role: u.role,
+    name: u.name,
+    active: u.active,
+    notes: u.notes || '',
+    avatarColor: u.avatarColor || ''
+  }));
+  const blob = new Blob([JSON.stringify({ users: safe }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'users.json';
+  a.click();
+}
+
 /* ═══════════════════════════════════════════════
    RENDER ALL
 ═══════════════════════════════════════════════ */
@@ -845,12 +912,19 @@ function renderDashboard() {
   }
 
   const now = new Date();
+  /*
+   * "Needs attention" triggers:
+   *   1. Status is "Retired"    — flagged for disposal / end of life
+   *   2. Status is "In Service" — currently under repair
+   *   3. Warranty expired       — warrantyExpiry date is in the past
+   *   4. Warranty expiring soon — within 90 days from today
+   */
   const attn = assetData.filter(a => {
     if (a.status === 'Retired' || a.status === 'In Service') return true;
     if (a.warrantyExpiry) {
       const exp = new Date(a.warrantyExpiry);
       const diffDays = (exp - now) / 86400000;
-      return diffDays < 90;
+      return diffDays < 90; // covers both expired (negative) and expiring soon
     }
     return false;
   });
@@ -1048,6 +1122,7 @@ function openDetailModal(assetId) {
   if (canDo('assign'))   dBtns.push(`<button class="accent" onclick="closeModal('detailBackdrop');navAction('assign');prefillAssetId('assign','${a.id}')"><i class="ti ti-user-plus"></i> Assign</button>`);
   if (canDo('unassign')) dBtns.push(`<button onclick="closeModal('detailBackdrop');navAction('unassign');prefillAssetId('unassign','${a.id}')"><i class="ti ti-user-minus"></i> Unassign</button>`);
   if (canDo('checkin'))  dBtns.push(`<button onclick="closeModal('detailBackdrop');navAction('checkin');prefillAssetId('checkin','${a.id}')"><i class="ti ti-square-check"></i> Check in</button>`);
+  if (canDo('editasset')) dBtns.push(`<button onclick="openEditAssetForm('${a.id}')"><i class="ti ti-pencil"></i> Edit</button>`);
   if (canDo('printqr')) dBtns.push(`<button onclick="printQR('${a.id}')"><i class="ti ti-printer"></i> Print QR</button>`);
   document.getElementById('detail-actions').innerHTML = dBtns.join('');
 
@@ -1059,6 +1134,59 @@ function prefillAssetId(prefix, id) {
     const el = document.getElementById(prefix + '-asset-id');
     if (el) { el.value = id; lookupAssetById(prefix); }
   }, 320);
+}
+
+/* ── Asset inline edit ──────────────────────────── */
+let _editingAssetId = null;
+function openEditAssetForm(assetId) {
+  const a = assetData.find(x => x.id === assetId);
+  if (!a || !canDo('editasset')) return;
+  _editingAssetId = assetId;
+  document.getElementById('edit-name').value      = a.name || '';
+  document.getElementById('edit-category').value  = a.category || 'Other';
+  document.getElementById('edit-status').value    = a.status || 'Active';
+  document.getElementById('edit-serial').value    = a.serial || '';
+  document.getElementById('edit-assignedTo').value= a.assignedTo || '';
+  document.getElementById('edit-location').value  = a.location || '';
+  document.getElementById('edit-purchase').value  = a.purchaseDate || '';
+  document.getElementById('edit-warranty').value  = a.warrantyExpiry || '';
+  document.getElementById('edit-notes').value     = a.notes || '';
+  // Swap view: hide detail grid & action buttons, show edit form
+  document.getElementById('detail-grid').style.display    = 'none';
+  document.getElementById('detail-notes').style.display   = 'none';
+  document.getElementById('detail-actions').style.display = 'none';
+  const mapWrap = document.getElementById('detail-map-wrap');
+  if (mapWrap) mapWrap.style.display = 'none';
+  document.getElementById('detail-edit-form').style.display = '';
+}
+function cancelEditAsset() {
+  _editingAssetId = null;
+  document.getElementById('detail-edit-form').style.display  = 'none';
+  document.getElementById('detail-grid').style.display       = '';
+  document.getElementById('detail-actions').style.display    = '';
+  const mapWrap = document.getElementById('detail-map-wrap');
+  if (mapWrap) mapWrap.style.display = '';
+  // Restore notes if present
+  const notesEl = document.getElementById('detail-notes');
+  if (notesEl && notesEl.textContent) notesEl.style.display = '';
+}
+function saveEditAsset() {
+  if (!_editingAssetId) return;
+  const a = assetData.find(x => x.id === _editingAssetId);
+  if (!a) return;
+  a.name          = document.getElementById('edit-name').value.trim() || a.name;
+  a.category      = document.getElementById('edit-category').value;
+  a.status        = document.getElementById('edit-status').value;
+  a.serial        = document.getElementById('edit-serial').value.trim();
+  a.assignedTo    = document.getElementById('edit-assignedTo').value.trim();
+  a.location      = document.getElementById('edit-location').value.trim();
+  a.purchaseDate  = document.getElementById('edit-purchase').value;
+  a.warrantyExpiry= document.getElementById('edit-warranty').value;
+  a.notes         = document.getElementById('edit-notes').value.trim();
+  saveOverride(a);
+  renderAll();
+  closeModal('detailBackdrop');
+  setTimeout(() => openDetailModal(a.id), 200);
 }
 
 /* ═══════════════════════════════════════════════
@@ -1122,6 +1250,8 @@ function confirmUnassign() {
   if (!id) { alert('Please enter or scan an asset ID.'); return; }
   const a = assetData.find(x => x.id.toLowerCase() === id.toLowerCase());
   if (!a) { alert('Asset not found: ' + id); return; }
+  const newStatus = document.getElementById('unassign-newstatus').value;
+  if (newStatus === 'Retired' && !confirm(`Are you sure you want to retire "${a.name}"? This marks it as end-of-life.`)) return;
   a.assignedTo   = '';
   a.assignedDate = '';
   a.status       = document.getElementById('unassign-newstatus').value;
@@ -1599,11 +1729,13 @@ function printQR(assetId) {
 }
 
 /* ═══════════════════════════════════════════════
-   ORBITAL WHEEL ENGINE
-   Radial thumb menu (mobile, bottom-right)
-   Spins with momentum via touch/mouse drag
+   ORBITAL WHEEL ENGINE  v15
+   Dynamically uses only role-visible items.
+   No blank slots — items always fill the ring
+   evenly regardless of how many are shown.
+   Loops infinitely in both directions.
 ═══════════════════════════════════════════════ */
-const ITEMS = [
+const ALL_ITEMS = [
   { id:'oi-dashboard', action: () => showPage('dashboard') },
   { id:'oi-assets',    action: () => showPage('assets') },
   { id:'oi-reports',   action: () => showPage('reports') },
@@ -1612,15 +1744,19 @@ const ITEMS = [
   { id:'oi-checkin',   action: () => navAction('checkin') },
   { id:'oi-unassign',  action: () => navAction('unassign') },
   { id:'oi-assign',    action: () => navAction('assign') },
+  { id:'oi-admin',     action: () => { closeOrbit(); setTimeout(() => showPage('admin'), 160); } },
   { id:'oi-login',     action: () => openModal('loginBackdrop') },
   { id:'oi-signout',   action: () => signOut() },
   { id:'oi-profile',   action: () => openSelfProfile() },
   { id:'oi-theme',     action: () => toggleTheme() },
 ];
 
-const ITEM_COUNT = ITEMS.length;
-const ORBIT_R = 110;
-const ITEM_R  = 27;
+// Active (visible) items — rebuilt by rebuildOrbitItems()
+let ITEMS = [...ALL_ITEMS];
+let itemEls = ALL_ITEMS.map(it => document.getElementById(it.id));
+
+const ORBIT_R  = 110;
+const ITEM_R   = 27;
 const ARC_START = 185;
 const ARC_END   = 285;
 
@@ -1632,13 +1768,25 @@ const orbWrap   = document.getElementById('orbWrap');
 const orbCanvas = document.getElementById('orbCanvas');
 const arcTouch  = document.getElementById('arcTouch');
 const ctx       = orbCanvas.getContext('2d');
-const itemEls   = ITEMS.map(it => document.getElementById(it.id));
+
+/* Rebuild active items from those currently display:'' */
+function rebuildOrbitItems() {
+  ITEMS = ALL_ITEMS.filter(it => {
+    const el = document.getElementById(it.id);
+    return el && el.style.display !== 'none';
+  });
+  itemEls = ALL_ITEMS.map(it => document.getElementById(it.id));
+}
 
 function getTriggerCenter() {
   const r = document.getElementById('orbTrigger').getBoundingClientRect();
   return { cx: r.left + r.width/2, cy: r.top + r.height/2 };
 }
-function itemAngleDeg(i) { return ARC_START + i * (360/ITEM_COUNT) + orbitAngle; }
+/* Angle for active item i, evenly spaced, looping */
+function itemAngleDeg(i) {
+  const count = ITEMS.length || 1;
+  return ARC_START + i * (360/count) + orbitAngle;
+}
 function degToRad(d) { return d * Math.PI / 180; }
 function isInVisibleArc(deg) { const buf=14; return deg>=(ARC_START-buf) && deg<=(ARC_END+buf); }
 
@@ -1658,28 +1806,34 @@ function drawRing() {
   ctx.arc(lx,ly,ORBIT_R,degToRad(ARC_START-10),degToRad(ARC_END+10));
   ctx.strokeStyle = dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
   ctx.lineWidth=2; ctx.stroke();
-  for(let i=0;i<ITEM_COUNT;i++){
+  ITEMS.forEach((_,i) => {
     const deg=((itemAngleDeg(i)%360)+360)%360;
-    if(!isInVisibleArc(deg)) continue;
+    if(!isInVisibleArc(deg)) return;
     const a=degToRad(deg);
     ctx.beginPath();
     ctx.arc(lx+Math.cos(a)*ORBIT_R, ly+Math.sin(a)*ORBIT_R, 3, 0, Math.PI*2);
     ctx.fillStyle = dark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)';
     ctx.fill();
-  }
+  });
 }
 
 function positionItems() {
   const {cx,cy} = getTriggerCenter();
   const prominent = (ARC_START+ARC_END)/2;
-  itemEls.forEach((el,i) => {
+  const count = ITEMS.length || 1;
+  // First hide ALL item elements
+  itemEls.forEach(el => { if(el) { el.classList.remove('visible','active-item'); } });
+  // Then position and show only active items
+  ITEMS.forEach((item, i) => {
+    const el = document.getElementById(item.id);
+    if (!el) return;
     const deg = ((itemAngleDeg(i)%360)+360)%360;
     const rad = degToRad(deg);
     el.style.left = (cx + Math.cos(rad)*ORBIT_R - ITEM_R)+'px';
     el.style.top  = (cy + Math.sin(rad)*ORBIT_R - ITEM_R)+'px';
     el.classList.toggle('visible', isInVisibleArc(deg));
     const diff = Math.min(Math.abs(deg-prominent), 360-Math.abs(deg-prominent));
-    el.classList.toggle('active-item', diff < (360/ITEM_COUNT)/2);
+    el.classList.toggle('active-item', diff < (360/count)/2);
   });
 }
 
@@ -1691,6 +1845,7 @@ function sizeArcTouch() {
 }
 
 function openOrbit() {
+  rebuildOrbitItems();
   orbOpen=true; orbWrap.classList.add('open');
   orbCanvas.classList.remove('hidden'); arcTouch.classList.remove('hidden');
   drawRing(); positionItems(); sizeArcTouch();
@@ -1698,7 +1853,7 @@ function openOrbit() {
 function closeOrbit() {
   orbOpen=false; orbWrap.classList.remove('open');
   orbCanvas.classList.add('hidden'); arcTouch.classList.add('hidden');
-  itemEls.forEach(el => el.classList.remove('visible','active-item'));
+  itemEls.forEach(el => { if(el) el.classList.remove('visible','active-item'); });
   cancelAnimationFrame(rafId); velocity=0;
 }
 function handleTriggerClick() { orbOpen ? closeOrbit() : openOrbit(); }
@@ -1706,7 +1861,7 @@ function handleTriggerClick() { orbOpen ? closeOrbit() : openOrbit(); }
 function snapToNearest() {
   const prominent=(ARC_START+ARC_END)/2;
   let bestDiff=Infinity, bestIndex=0;
-  itemEls.forEach((_,i) => {
+  ITEMS.forEach((_,i) => {
     const deg=((itemAngleDeg(i)%360)+360)%360;
     const diff=Math.min(Math.abs(deg-prominent),360-Math.abs(deg-prominent));
     if(diff<bestDiff){bestDiff=diff;bestIndex=i;}
@@ -1743,8 +1898,17 @@ arcTouch.addEventListener('mousedown', e=>{ mouseDragging=true; mouseLastY=e.cli
 window.addEventListener('mousemove', e=>{ if(!mouseDragging) return; const dy=mouseLastY-e.clientY; velocity=dy*0.5; orbitAngle+=dy*0.5; mouseLastY=e.clientY; drawRing(); positionItems(); });
 window.addEventListener('mouseup', ()=>{ if(!mouseDragging) return; mouseDragging=false; rafId=requestAnimationFrame(animateMomentum); });
 
-itemEls.forEach((el,i)=>{ el.addEventListener('click',()=>{ if(Math.abs(velocity)>0.5) return; closeOrbit(); setTimeout(()=>ITEMS[i].action(),160); }); });
-document.addEventListener('click', e=>{ if(!orbOpen) return; if(!orbWrap.contains(e.target)&&!itemEls.some(el=>el.contains(e.target))&&!arcTouch.contains(e.target)) closeOrbit(); });
+// Wire click handlers on all items by ALL_ITEMS index
+ALL_ITEMS.forEach((item) => {
+  const el = document.getElementById(item.id);
+  if (!el) return;
+  el.addEventListener('click', () => {
+    if (Math.abs(velocity) > 0.5) return;
+    closeOrbit();
+    setTimeout(() => item.action(), 160);
+  });
+});
+document.addEventListener('click', e=>{ if(!orbOpen) return; if(!orbWrap.contains(e.target)&&!itemEls.some(el=>el&&el.contains(e.target))&&!arcTouch.contains(e.target)) closeOrbit(); });
 window.addEventListener('resize', ()=>{ if(orbOpen){drawRing();positionItems();sizeArcTouch();} });
 
 /* ═══════════════════════════════════════════════
@@ -1755,9 +1919,9 @@ let userData     = [];    // loaded from users.json + localStorage
 
 // Role permission matrix
 const ROLE_PERMS = {
-  Master:        { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','export','printqr','master'] },
-  Administrator: { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','export','printqr'] },
-  Manager:       { pages:['dashboard','assets','reports'],         actions:['scan','checkin','assign','unassign','addasset','export','printqr'] },
+  Master:        { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','editasset','export','printqr','master'] },
+  Administrator: { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','editasset','export','printqr'] },
+  Manager:       { pages:['dashboard','assets','reports'],         actions:['scan','checkin','assign','unassign','addasset','editasset','export','printqr'] },
   Technician:    { pages:['dashboard','assets'],                   actions:['scan','checkin','printqr'] },
   Driver:        { pages:['dashboard'],                            actions:['scan','checkin'] },
   Viewer:        { pages:['assets'],                               actions:['scan'] },
@@ -1878,13 +2042,16 @@ function applyRoleUI() {
     };
     const rc = roleColors[role] || roleColors.Viewer;
     const isDarkTheme = document.getElementById('app').getAttribute('data-theme') === 'dark';
-    document.getElementById('nav-user-avatar').style.background = rc.bg;
+    // Use user's custom avatar colour if set, otherwise fall back to role colour
+    const uData = userData.find(x => x.username === currentUser.username);
+    const pillBg = (uData && uData.avatarColor) ? uData.avatarColor : rc.bg;
+    document.getElementById('nav-user-avatar').style.background = pillBg;
     document.getElementById('nav-user-role').style.background   = rc.badge;
     document.getElementById('nav-user-role').style.color        = isDarkTheme ? rc.textDark : rc.text;
     pill.style.borderColor = rc.border;
     // Update orbital profile bubble
     const opa = document.getElementById('oi-profile-avatar');
-    if (opa) { opa.textContent = currentUser.name.charAt(0).toUpperCase(); opa.style.background = rc.bg; }
+    if (opa) { opa.textContent = currentUser.name.charAt(0).toUpperCase(); opa.style.background = pillBg; }
   } else {
     pill.style.display   = 'none';
     signIn.style.display = '';
@@ -1902,6 +2069,8 @@ function applyRoleUI() {
   if (addBtn) addBtn.style.display = canDo('addasset') ? '' : 'none';
   const adminBtn = document.getElementById('nav-btn-admin');
   if (adminBtn) adminBtn.style.display = ['Master','Administrator'].includes(role) ? '' : 'none';
+  const exportUsersBtn = document.getElementById('admin-export-users-btn');
+  if (exportUsersBtn) exportUsersBtn.style.display = (role === 'Master') ? '' : 'none';
 
   // Action buttons
   const actionMap = {
@@ -1954,6 +2123,10 @@ function roleBadge(r) {
   const m = {Master:'master',Administrator:'red',Manager:'blue',Technician:'green',Driver:'amber',Viewer:'gray'};
   return `<span class="badge badge-${m[r]||'gray'}">${r}</span>`;
 }
+function roleColor(r) {
+  const m = {Master:'#7c3aed',Administrator:'#dc2626',Manager:'#2563eb',Technician:'#16a34a',Driver:'#d97706',Viewer:'#6b7280'};
+  return m[r] || '#6b7280';
+}
 
 /* ── Admin page render ───────────────────────────── */
 function renderAdminPage() {
@@ -1969,14 +2142,12 @@ function renderAdminPage() {
     return;
   }
   list.innerHTML = filtered.map(u => {
-    // Admins cannot edit Master accounts — only Master can edit Master
-    // Master can edit anyone
-    // Administrator can only edit non-admin, non-master accounts
     const canEdit = isMaster || (!['Master','Administrator'].includes(u.role));
     const isInactive = u.active === false;
+    const avatarColor = u.avatarColor || roleColor(u.role);
     return `
     <div class="user-card" style="${isInactive ? 'opacity:.55' : ''}">
-      <div class="user-avatar" style="background:${u.role==='Master'?'#7c3aed':''}">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="user-avatar" style="background:${avatarColor}">${u.name.charAt(0).toUpperCase()}</div>
       <div class="user-info">
         <div class="user-name">${u.name} ${isInactive ? '<span style="font-size:11px;color:#dc2626">(inactive)</span>' : ''}</div>
         <div class="user-email">${u.username}</div>
@@ -2038,6 +2209,21 @@ function openEditUser(username) {
   // Role pills (read-only display of current role)
   document.getElementById('eu-role-pills').innerHTML = roleBadge(u.role);
 
+  // Avatar color picker
+  const currentColor = u.avatarColor || roleColor(u.role);
+  document.getElementById('eu-avatar-color').value = currentColor;
+  document.getElementById('eu-color-custom').value = currentColor;
+  const swatchColors = [
+    '#7c3aed','#dc2626','#2563eb','#16a34a','#d97706','#6b7280',
+    '#0891b2','#db2777','#ea580c','#65a30d','#7e22ce','#0f172a'
+  ];
+  document.getElementById('eu-color-swatches').innerHTML = swatchColors.map(c =>
+    `<button onclick="selectSwatchColor('${c}')" title="${c}" style="
+      width:26px;height:26px;border-radius:50%;background:${c};border:2.5px solid ${c === currentColor ? '#fff' : 'transparent'};
+      outline:${c === currentColor ? '2px solid '+c : 'none'};cursor:pointer;transition:transform .15s;flex-shrink:0
+    " data-swatch="${c}"></button>`
+  ).join('');
+
   openModal('editUserBackdrop');
 }
 
@@ -2054,6 +2240,27 @@ function updateToggleState(active) {
   document.getElementById('eu-toggle-track').style.background = active ? 'var(--accent)' : 'var(--bg3)';
   document.getElementById('eu-toggle-thumb').style.transform  = active ? 'translateX(18px)' : 'translateX(0)';
   document.getElementById('eu-status-label').textContent = active ? 'Active' : 'Inactive';
+}
+
+/* ── Avatar colour helpers ───────────────────────── */
+function selectSwatchColor(hex) {
+  document.getElementById('eu-avatar-color').value = hex;
+  document.getElementById('eu-color-custom').value = hex;
+  document.getElementById('eu-avatar-display').style.background = hex;
+  // Update swatch outlines
+  document.querySelectorAll('#eu-color-swatches button').forEach(btn => {
+    const active = btn.dataset.swatch === hex;
+    btn.style.border  = active ? '2.5px solid #fff' : '2.5px solid transparent';
+    btn.style.outline = active ? '2px solid ' + hex : 'none';
+  });
+}
+function selectCustomColor(hex) {
+  document.getElementById('eu-avatar-color').value = hex;
+  document.getElementById('eu-avatar-display').style.background = hex;
+  document.querySelectorAll('#eu-color-swatches button').forEach(btn => {
+    btn.style.border  = '2.5px solid transparent';
+    btn.style.outline = 'none';
+  });
 }
 
 /* ── Save profile changes ────────────────────────── */
@@ -2078,6 +2285,7 @@ async function saveEditUser() {
   u.name  = document.getElementById('eu-name').value.trim() || u.name;
   u.notes = document.getElementById('eu-notes').value.trim();
   u.active = document.getElementById('eu-active').checked;
+  u.avatarColor = document.getElementById('eu-avatar-color').value || roleColor(u.role);
 
   // Role — only update if not locked
   if (!document.getElementById('eu-role').disabled) {
@@ -2216,9 +2424,7 @@ applyTheme(localStorage.getItem('ims-theme') || 'light');
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('assign-date').value = today;
 
-// 3. Wire admin orbital item
-const oiAdmin = document.getElementById('oi-admin');
-if (oiAdmin) oiAdmin.addEventListener('click', () => { closeOrbit(); setTimeout(() => showPage('admin'), 160); });
+// 3. Wire admin page via showPage (handled in ALL_ITEMS)
 
 // 4. Restore session from localStorage synchronously (no network needed)
 //    so applyRoleUI() can run before any fetch completes
