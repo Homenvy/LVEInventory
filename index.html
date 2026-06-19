@@ -128,7 +128,7 @@ h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
 .modal-backdrop{display:none;position:fixed;inset:0;background:var(--modal-bg);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(2px);padding:1rem}
 .modal-backdrop.open{display:flex;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.gen-modal,.login-modal,.asset-form-modal,.detail-modal{background:var(--card);border:.5px solid var(--border2);border-radius:16px;padding:2rem;position:relative;animation:slideUp .3s cubic-bezier(.4,0,.2,1);width:100%;max-height:90vh;overflow-y:auto}
+.gen-modal,.login-modal,.asset-form-modal,.detail-modal{background:var(--card);border:.5px solid var(--border2);border-radius:16px;padding:2rem;position:relative;animation:slideUp .3s cubic-bezier(.4,0,.2,1);width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .login-modal{max-width:360px}
 .asset-form-modal{max-width:500px}
 .gen-modal{max-width:440px}
@@ -233,7 +233,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v18</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v19</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -942,7 +942,7 @@ function openDetailModal(assetId) {
   if (canDo('assign'))   dBtns.push(`<button class="accent" onclick="closeModal('detailBackdrop');navAction('assign');prefillAssetId('assign','${a.id}')"><i class="ti ti-user-plus"></i> Assign</button>`);
   if (canDo('unassign')) dBtns.push(`<button onclick="closeModal('detailBackdrop');navAction('unassign');prefillAssetId('unassign','${a.id}')"><i class="ti ti-user-minus"></i> Unassign</button>`);
   if (canDo('checkin'))  dBtns.push(`<button onclick="closeModal('detailBackdrop');navAction('checkin');prefillAssetId('checkin','${a.id}')"><i class="ti ti-square-check"></i> Check in</button>`);
-  dBtns.push(`<button onclick="printQR('${a.id}')"><i class="ti ti-printer"></i> Print QR</button>`);
+  if (canDo('checkin') || canDo('assign')) dBtns.push(`<button onclick="printQR('${a.id}')"><i class="ti ti-printer"></i> Print QR</button>`);
   document.getElementById('detail-actions').innerHTML = dBtns.join('');
 
   openModal('detailBackdrop');
@@ -1024,8 +1024,13 @@ function confirmUnassign() {
 }
 
 async function confirmCheckin() {
-  const id = document.getElementById('checkin-asset-id').value.trim();
-  if (!id) { alert('Please enter or scan an asset ID.'); return; }
+  // Accept ID from the input field OR from the scan result text (belt+braces)
+  let id = document.getElementById('checkin-asset-id').value.trim();
+  if (!id) {
+    const rt = document.getElementById('checkin-result-text');
+    if (rt) id = (rt.textContent || '').replace(/^Scanned:\s*/i, '').trim();
+  }
+  if (!id) { alert('Please scan or enter an asset ID first.'); return; }
   const a = assetData.find(x => x.id.toLowerCase() === id.toLowerCase());
   if (!a) { alert('Asset not found: ' + id); return; }
   a.assignedTo = '';
@@ -1120,7 +1125,7 @@ let snapshotTimers  = {};
 ─────────────────────────────────────────────── */
 function decodeCanvasWithJsQR(canvas) {
   if (typeof jsQR === 'undefined') return null;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   let imageData;
   try { imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); } catch(e) { return null; }
   const result = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'dontInvert' });
@@ -1157,7 +1162,7 @@ async function startCamera(prefix, onScan) {
     }
 
     const offCanvas = document.createElement('canvas');
-    const offCtx    = offCanvas.getContext('2d');
+    const offCtx    = offCanvas.getContext('2d', { willReadFrequently: true });
 
     const intervalId = setInterval(async () => {
       if (!activeStreams[prefix]) { clearInterval(intervalId); return; }
@@ -1243,7 +1248,7 @@ async function takeSnapshot(prefix, stream, onScan, btn) {
   const w = imageBitmap ? imageBitmap.width  : (video?.videoWidth  || 640);
   const h = imageBitmap ? imageBitmap.height : (video?.videoHeight || 480);
   canvas.width = w; canvas.height = h;
-  const ctx2d = canvas.getContext('2d');
+  const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
 
   if (imageBitmap) {
     ctx2d.drawImage(imageBitmap, 0, 0);
@@ -1615,7 +1620,7 @@ const ROLE_PERMS = {
   Manager:       { pages:['dashboard','assets','reports'],         actions:['scan','checkin','assign','unassign','addasset','export'] },
   Technician:    { pages:['dashboard','assets'],                   actions:['scan','checkin'] },
   Driver:        { pages:[],                                       actions:['scan','checkin'] },
-  Viewer:        { pages:[],                                       actions:['scan'] },
+  Viewer:        { pages:['assets'],                              actions:['scan'] },
   Guest:         { pages:['dashboard'],                            actions:[] },
 };
 
@@ -1731,7 +1736,8 @@ function applyRoleUI() {
   const pageMap = { dashboard:'nav-dashboard', assets:'nav-assets', reports:'nav-reports' };
   Object.entries(pageMap).forEach(([page, id]) => {
     const el = document.getElementById(id);
-    if (el) el.style.display = perms.pages.includes(page) || page === 'dashboard' ? '' : 'none';
+    // Dashboard always visible; other pages based on role permissions
+    if (el) el.style.display = (page === 'dashboard' || perms.pages.includes(page)) ? '' : 'none';
   });
   // Admin page button
   const adminBtn = document.getElementById('nav-btn-admin');
@@ -1768,7 +1774,7 @@ function applyRoleUI() {
   });
 
   // Dashboard — hide panels for Driver/Viewer/Guest
-  const hideDash = ['Driver','Viewer','Guest'].includes(role);
+  const hideDash = ['Driver','Guest'].includes(role);
   document.querySelectorAll('.panels, #category-table').forEach(el => {
     el.style.display = hideDash ? 'none' : '';
   });
