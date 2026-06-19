@@ -233,7 +233,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v17</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v18</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -1311,6 +1311,11 @@ function stopCameraAndClose(backdropId) {
    NAV ACTION ROUTER
 ═══════════════════════════════════════════════ */
 function navAction(action) {
+  // Permission check — inline so there is only one navAction declaration
+  if (typeof canDo === 'function' && !canDo(action)) {
+    if (!currentUser) { openModal('loginBackdrop'); return; }
+    showAccessDenied(); return;
+  }
   if (action === 'assign') {
     openModal('assignBackdrop');
     startCamera('assign', val => {
@@ -1368,7 +1373,7 @@ function showAccessDenied() {
     t = document.createElement('div');
     t.id = 'access-toast';
     t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-    t.innerHTML = '<i class="ti ti-lock" style="color:#f87171"></i> You don't have permission to access this.';
+    t.innerHTML = '<i class="ti ti-lock" style="color:#f87171"></i> You don\u2019t have permission to access this.';
     document.body.appendChild(t);
   }
   t.style.opacity = '1';
@@ -1861,15 +1866,7 @@ function toggleUserActive(username) {
   renderAdminPage();
 }
 
-// Intercept navAction to check permissions
-const _origNavAction = navAction;
-function navAction(action) {
-  if (!canDo(action)) {
-    if (!currentUser) { openModal('loginBackdrop'); return; }
-    showAccessDenied(); return;
-  }
-  _origNavAction(action);
-}
+// navAction permission check is built into the function directly above
 
 /* ═══════════════════════════════════════════════
    INIT — synchronous work runs first so the page
