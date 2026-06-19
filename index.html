@@ -244,7 +244,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.25</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.26</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -259,11 +259,11 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         <i class="ti ti-sun sun-icon"></i>
         <i class="ti ti-moon moon-icon"></i>
       </button>
-      <div id="nav-user-pill" style="display:none;align-items:center;gap:6px;padding:4px 10px 4px 6px;border:.5px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);cursor:default">
+      <div id="nav-user-pill" style="display:none;align-items:center;gap:6px;padding:4px 10px 4px 6px;border:.5px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer" onclick="openSelfProfile()" title="View your profile">
         <span id="nav-user-avatar" style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0"></span>
         <span id="nav-user-name"></span>
         <span id="nav-user-role" style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg3);color:var(--text3)"></span>
-        <button onclick="signOut()" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:2px 0 2px 4px;font-size:13px" title="Sign out"><i class="ti ti-logout"></i></button>
+        <button onclick="event.stopPropagation();signOut()" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:2px 0 2px 4px;font-size:13px" title="Sign out"><i class="ti ti-logout"></i></button>
       </div>
       <button class="nav-btn primary" id="nav-signin-btn" onclick="openModal('loginBackdrop')"><i class="ti ti-lock"></i> Sign in</button>
     </div>
@@ -362,10 +362,11 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         <table class="asset-table" style="margin-top:.5rem">
           <thead><tr><th>Role</th><th>Dashboard</th><th>Assets</th><th>Scan</th><th>Check-in</th><th>Assign</th><th>Add/Edit</th><th>Reports</th><th>Admin</th></tr></thead>
           <tbody>
+            <tr><td><span class="badge badge-master">Master</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅ + user mgmt</td></tr>
             <tr><td><span class="badge badge-red">Administrator</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
             <tr><td><span class="badge badge-blue">Manager</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
             <tr><td><span class="badge badge-green">Technician</span></td><td>✅</td><td>View</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
-            <tr><td><span class="badge badge-amber">Driver</span></td><td>❌</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+            <tr><td><span class="badge badge-amber">Driver</span></td><td>Stats</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
             <tr><td><span class="badge badge-gray">Viewer</span></td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
             <tr><td><em style="color:var(--text3)">Guest</em></td><td>Stats</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
           </tbody>
@@ -390,6 +391,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
   <div class="orbit-item" id="oi-reports"><i class="ti ti-chart-bar"></i><span>Reports</span></div>
   <div class="orbit-item" id="oi-login"><i class="ti ti-lock"></i><span>Sign in</span></div>
   <div class="orbit-item" id="oi-signout" style="display:none"><i class="ti ti-logout"></i><span>Sign out</span></div>
+  <div class="orbit-item" id="oi-profile" style="display:none;flex-direction:column"><span id="oi-profile-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;margin-bottom:2px"></span><span>Profile</span></div>
   <div class="orbit-item" id="oi-admin" style="display:none"><i class="ti ti-shield"></i><span>Admin</span></div>
   <div class="orbit-item" id="oi-scan"><i class="ti ti-scan"></i><span>Scan</span></div>
   <div class="orbit-item" id="oi-checkin"><i class="ti ti-square-check"></i><span>Check in</span></div>
@@ -399,6 +401,45 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
   <div class="orbit-item" id="oi-theme">
     <span class="orbit-icon-wrap"><i class="ti ti-sun sun-icon" style="color:#d97706"></i><i class="ti ti-moon moon-icon" style="color:#a5b4fc"></i></span>
     <span>Theme</span>
+  </div>
+
+  <!-- SELF PROFILE MODAL -->
+  <div class="modal-backdrop" id="selfProfileBackdrop" onclick="backdropClose('selfProfileBackdrop',event)">
+    <div class="detail-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" onclick="closeModal('selfProfileBackdrop')"><i class="ti ti-x"></i></button>
+
+      <!-- Header -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-bottom:1.25rem">
+        <div id="sp-avatar" style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600"></div>
+        <div style="text-align:center">
+          <div id="sp-name-display" style="font-size:18px;font-weight:500;color:var(--text)"></div>
+          <div id="sp-email-display" style="font-size:13px;color:var(--text3);font-family:monospace"></div>
+        </div>
+        <div id="sp-role-badge"></div>
+      </div>
+
+      <!-- Display name -->
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label style="text-align:center;display:block">Display name</label>
+        <input type="text" class="form-input" id="sp-name" style="text-align:center">
+      </div>
+
+      <!-- Password change -->
+      <div style="background:var(--bg2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.5rem;text-align:center">Change password</div>
+        <input type="password" class="form-input" id="sp-current-pass" placeholder="Current password" style="margin-bottom:.5rem;text-align:center">
+        <input type="password" class="form-input" id="sp-new-pass" placeholder="New password (min 8 characters)" style="margin-bottom:.5rem;text-align:center">
+        <input type="password" class="form-input" id="sp-new-pass2" placeholder="Confirm new password" style="text-align:center">
+      </div>
+
+      <div id="sp-error" style="display:none;background:rgba(220,38,38,.1);color:#b91c1c;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:.75rem;text-align:center"></div>
+      <div id="sp-success" style="display:none;background:rgba(22,163,74,.1);color:#15803d;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:.75rem;text-align:center"></div>
+
+      <div class="form-actions">
+        <button class="btn-full btn-ghost" onclick="closeModal('selfProfileBackdrop')">Cancel</button>
+        <button class="btn-full btn-primary" onclick="saveSelfProfile()"><i class="ti ti-check"></i> Save changes</button>
+      </div>
+    </div>
   </div>
 
   <!-- LOGIN MODAL -->
@@ -465,11 +506,11 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
           <i class="ti ti-toggle-left" style="font-size:18px;color:var(--accent)"></i>
           Account status
         </div>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px" onclick="toggleEuActive()">
           <span id="eu-status-label" style="color:var(--text2)">Active</span>
           <div style="position:relative;width:40px;height:22px">
             <input type="checkbox" id="eu-active" style="opacity:0;width:0;height:0;position:absolute">
-            <span id="eu-toggle-track" onclick="document.getElementById('eu-active').click();updateToggle()" style="position:absolute;inset:0;background:var(--bg3);border-radius:11px;cursor:pointer;transition:background .2s"></span>
+            <span id="eu-toggle-track" style="position:absolute;inset:0;background:var(--bg3);border-radius:11px;cursor:pointer;transition:background .2s"></span>
             <span id="eu-toggle-thumb" style="position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none"></span>
           </div>
         </label>
@@ -1491,7 +1532,7 @@ function applyTheme(t) {
   document.body.style.background = t === 'dark' ? '#000' : '#fff';
   localStorage.setItem('ims-theme', t);
 }
-function toggleTheme() { applyTheme(app.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); }
+function toggleTheme() { applyTheme(app.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); if (currentUser) applyRoleUI(); }
 
 /* ═══════════════════════════════════════════════
    BADGE HELPER
@@ -1573,6 +1614,7 @@ const ITEMS = [
   { id:'oi-assign',    action: () => navAction('assign') },
   { id:'oi-login',     action: () => openModal('loginBackdrop') },
   { id:'oi-signout',   action: () => signOut() },
+  { id:'oi-profile',   action: () => openSelfProfile() },
   { id:'oi-theme',     action: () => toggleTheme() },
 ];
 
@@ -1822,9 +1864,27 @@ function applyRoleUI() {
   if (isAuth) {
     pill.style.display   = 'flex';
     signIn.style.display = 'none';
-    document.getElementById('nav-user-name').textContent  = currentUser.name;
-    document.getElementById('nav-user-role').textContent  = role;
+    document.getElementById('nav-user-name').textContent   = currentUser.name;
+    document.getElementById('nav-user-role').textContent   = role;
     document.getElementById('nav-user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+    // Role-based colours for pill
+    const roleColors = {
+      Master:        { bg:'#7c3aed', border:'rgba(139,92,246,.45)', badge:'rgba(139,92,246,.15)', text:'#7c3aed', textDark:'#c4b5fd' },
+      Administrator: { bg:'#dc2626', border:'rgba(220,38,38,.35)',  badge:'rgba(220,38,38,.12)',  text:'#b91c1c', textDark:'#f87171' },
+      Manager:       { bg:'#2563eb', border:'rgba(37,99,235,.35)',  badge:'rgba(37,99,235,.12)',  text:'#1d4ed8', textDark:'#60a5fa' },
+      Technician:    { bg:'#16a34a', border:'rgba(22,163,74,.35)',  badge:'rgba(22,163,74,.12)',  text:'#15803d', textDark:'#4ade80' },
+      Driver:        { bg:'#d97706', border:'rgba(217,119,6,.35)',  badge:'rgba(217,119,6,.12)',  text:'#b45309', textDark:'#fbbf24' },
+      Viewer:        { bg:'#6b7280', border:'rgba(107,114,128,.35)',badge:'rgba(107,114,128,.12)',text:'#4b5563', textDark:'#9ca3af' },
+    };
+    const rc = roleColors[role] || roleColors.Viewer;
+    const isDarkTheme = document.getElementById('app').getAttribute('data-theme') === 'dark';
+    document.getElementById('nav-user-avatar').style.background = rc.bg;
+    document.getElementById('nav-user-role').style.background   = rc.badge;
+    document.getElementById('nav-user-role').style.color        = isDarkTheme ? rc.textDark : rc.text;
+    pill.style.borderColor = rc.border;
+    // Update orbital profile bubble
+    const opa = document.getElementById('oi-profile-avatar');
+    if (opa) { opa.textContent = currentUser.name.charAt(0).toUpperCase(); opa.style.background = rc.bg; }
   } else {
     pill.style.display   = 'none';
     signIn.style.display = '';
@@ -1868,6 +1928,7 @@ function applyRoleUI() {
     'oi-admin':     () => ['Master','Administrator'].includes(role),
     'oi-login':     () => !isAuth,
     'oi-signout':   () => isAuth,
+    'oi-profile':   () => isAuth,
   };
   Object.entries(orbMap).forEach(([id, check]) => {
     const el = document.getElementById(id);
@@ -1909,7 +1970,9 @@ function renderAdminPage() {
   }
   list.innerHTML = filtered.map(u => {
     // Admins cannot edit Master accounts — only Master can edit Master
-    const canEdit = isMaster || u.role !== 'Master';
+    // Master can edit anyone
+    // Administrator can only edit non-admin, non-master accounts
+    const canEdit = isMaster || (!['Master','Administrator'].includes(u.role));
     const isInactive = u.active === false;
     return `
     <div class="user-card" style="${isInactive ? 'opacity:.55' : ''}">
@@ -1931,10 +1994,13 @@ function openEditUser(username) {
   const u = userData.find(x => x.username === username);
   if (!u) return;
 
-  const isMaster    = currentUser.role === 'Master';
+  const isMaster       = currentUser.role === 'Master';
+  const isAdmin        = currentUser.role === 'Administrator';
   const targetIsMaster = u.role === 'Master';
-  // Only Master can edit another Master; Admins cannot
+  const targetIsAdmin  = u.role === 'Administrator';
+  // Only Master can edit Master or Administrator accounts
   if (targetIsMaster && !isMaster) return;
+  if (targetIsAdmin  && !isMaster) return;
 
   document.getElementById('eu-username').value    = u.username;
   document.getElementById('eu-name').value        = u.name;
@@ -1976,9 +2042,13 @@ function openEditUser(username) {
 }
 
 /* ── Toggle visual state ─────────────────────────── */
+function toggleEuActive() {
+  const cb = document.getElementById('eu-active');
+  cb.checked = !cb.checked;
+  updateToggleState(cb.checked);
+}
 function updateToggle() {
-  const active = document.getElementById('eu-active').checked;
-  updateToggleState(active);
+  updateToggleState(document.getElementById('eu-active').checked);
 }
 function updateToggleState(active) {
   document.getElementById('eu-toggle-track').style.background = active ? 'var(--accent)' : 'var(--bg3)';
@@ -2074,6 +2144,65 @@ function toggleUserActive(username) {
 }
 
 // navAction permission check is built into the function directly above
+
+/* ── Self profile modal ─────────────────────────── */
+function openSelfProfile() {
+  if (!currentUser) return;
+  const u = userData.find(x => x.username === currentUser.username);
+  if (!u) return;
+  const roleColors = {
+    Master:'#7c3aed',Administrator:'#dc2626',Manager:'#2563eb',
+    Technician:'#16a34a',Driver:'#d97706',Viewer:'#6b7280'
+  };
+  document.getElementById('sp-avatar').textContent    = u.name.charAt(0).toUpperCase();
+  document.getElementById('sp-avatar').style.background = roleColors[u.role] || 'var(--accent)';
+  document.getElementById('sp-name-display').textContent = u.name;
+  document.getElementById('sp-email-display').textContent = u.username;
+  document.getElementById('sp-role-badge').innerHTML  = roleBadge(u.role);
+  document.getElementById('sp-name').value            = u.name;
+  document.getElementById('sp-current-pass').value    = '';
+  document.getElementById('sp-new-pass').value        = '';
+  document.getElementById('sp-new-pass2').value       = '';
+  document.getElementById('sp-error').style.display   = 'none';
+  document.getElementById('sp-success').style.display = 'none';
+  openModal('selfProfileBackdrop');
+}
+
+async function saveSelfProfile() {
+  if (!currentUser) return;
+  const u = userData.find(x => x.username === currentUser.username);
+  if (!u) return;
+  const errEl = document.getElementById('sp-error');
+  const okEl  = document.getElementById('sp-success');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  const newName     = document.getElementById('sp-name').value.trim();
+  const currentPass = document.getElementById('sp-current-pass').value;
+  const newPass     = document.getElementById('sp-new-pass').value;
+  const newPass2    = document.getElementById('sp-new-pass2').value;
+
+  // Password change requested
+  if (currentPass || newPass || newPass2) {
+    if (!currentPass) { errEl.textContent='Enter your current password to change it.'; errEl.style.display='block'; return; }
+    const currentHash = await sha256(u.salt + currentPass);
+    if (currentHash !== u.passwordHash) { errEl.textContent='Current password is incorrect.'; errEl.style.display='block'; return; }
+    if (newPass.length < 8) { errEl.textContent='New password must be at least 8 characters.'; errEl.style.display='block'; return; }
+    if (newPass !== newPass2) { errEl.textContent='New passwords do not match.'; errEl.style.display='block'; return; }
+    u.salt         = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    u.passwordHash = await sha256(u.salt + newPass);
+  }
+
+  if (newName) u.name = newName;
+  saveUserOverride(u);
+  currentUser.name = u.name;
+  localStorage.setItem('ims_session', JSON.stringify(currentUser));
+  applyRoleUI();
+  okEl.textContent = 'Profile updated successfully.';
+  okEl.style.display = 'block';
+  document.getElementById('sp-current-pass').value = '';
+  document.getElementById('sp-new-pass').value     = '';
+  document.getElementById('sp-new-pass2').value    = '';
+}
 
 /* ═══════════════════════════════════════════════
    INIT — synchronous work runs first so the page
