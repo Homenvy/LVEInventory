@@ -128,7 +128,7 @@ h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
 .modal-backdrop{display:none;position:fixed;inset:0;background:var(--modal-bg);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(2px);padding:1rem}
 .modal-backdrop.open{display:flex;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.gen-modal,.login-modal,.asset-form-modal,.detail-modal{background:var(--card);border:.5px solid var(--border2);border-radius:16px;padding:2rem;position:relative;animation:slideUp .3s cubic-bezier(.4,0,.2,1);width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.gen-modal,.login-modal,.asset-form-modal,.detail-modal{background:var(--card);border:.5px solid var(--border2);border-radius:16px;padding:2rem;position:relative;animation:slideUp .3s cubic-bezier(.4,0,.2,1);width:100%;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}.gen-modal::-webkit-scrollbar,.login-modal::-webkit-scrollbar,.asset-form-modal::-webkit-scrollbar,.detail-modal::-webkit-scrollbar{display:none}
 .login-modal{max-width:360px}
 .asset-form-modal{max-width:500px}
 .gen-modal{max-width:440px}
@@ -138,12 +138,14 @@ h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
 .modal-close:hover{background:var(--bg3);color:var(--text)}
 .modal-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
 .gen-modal .modal-sub,.login-modal .modal-sub,.asset-form-modal .modal-sub{text-align:center}
-.gen-modal .modal-h2,.login-modal .modal-h2{justify-content:center}
+.gen-modal .modal-h2,.login-modal .modal-h2,.asset-form-modal .modal-h2{justify-content:center}
 .form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500}
 .form-group.full-width{grid-column:1/-1}
 .scan-result,.scan-error{justify-content:center}
 #checkin-geo-status{justify-content:center;text-align:center}
 #checkin-by-display{justify-content:center}
+.gen-modal .form-group label{text-align:center}
+.gen-modal .manual-entry .form-group label{text-align:center}
 .modal-h2{font-size:18px;font-weight:500;margin-bottom:.25rem;display:flex;align-items:center;gap:8px;color:var(--text)}.detail-modal .modal-h2{justify-content:center;text-align:center}.detail-modal .modal-sub{text-align:center}
 .modal-h2 i{color:var(--accent)}
 
@@ -183,13 +185,13 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 
 /* DETAIL MODAL */
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem}
-.detail-field{display:flex;flex-direction:column;gap:2px}
-.detail-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-weight:500}
-.detail-value{font-size:14px;color:var(--text)}
+.detail-field{display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center}
+.detail-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-weight:500;text-align:center}
+.detail-value{font-size:14px;color:var(--text);text-align:center}
 .detail-notes{background:var(--bg2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
 .qr-box{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:1rem;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:1rem}
 .qr-box canvas,.qr-box img{border-radius:4px;display:block;width:160px!important;height:160px!important}
-.qr-id{font-size:13px;font-family:monospace;color:#333;letter-spacing:.05em;font-weight:600}
+.qr-id{font-size:13px;font-family:monospace;color:var(--text2);letter-spacing:.05em;font-weight:600}
 
 /* DETAIL ACTIONS */
 .detail-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -240,7 +242,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.23</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.24</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -1334,6 +1336,9 @@ function showCamResult(prefix, msg) {
   const el = document.getElementById(prefix + '-result');
   const tx = document.getElementById(prefix + '-result-text');
   if (el && tx) { tx.textContent = msg; el.classList.remove('hidden'); }
+  // Clear any lingering error message on successful scan
+  const errEl = document.getElementById(prefix + '-error');
+  if (errEl) errEl.classList.add('hidden');
 }
 function showCamError(prefix, msg) {
   const el = document.getElementById(prefix + '-error');
