@@ -233,7 +233,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v20</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v21</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -242,6 +242,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
       <button class="nav-btn" id="nav-btn-checkin" onclick="navAction('checkin')"><i class="ti ti-square-check"></i> Check in</button>
       <button class="nav-btn" id="nav-btn-unassign" onclick="navAction('unassign')"><i class="ti ti-user-minus"></i> Unassign</button>
       <button class="nav-btn" id="nav-btn-assign" onclick="navAction('assign')"><i class="ti ti-user-plus"></i> Assign</button>
+      <button class="nav-btn" id="nav-btn-addasset" onclick="openModal('addAssetBackdrop')" style="display:none"><i class="ti ti-plus"></i> Add asset</button>
       <button class="nav-btn" id="nav-btn-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield"></i> Admin</button>
       <button class="theme-toggle" aria-label="Toggle theme" onclick="toggleTheme()">
         <i class="ti ti-sun sun-icon"></i>
@@ -906,6 +907,14 @@ function openDetailModal(assetId) {
       <p class="map-addr"><i class="ti ti-map-pin" style="color:var(--accent)"></i><span>${addr} &nbsp;<a href="${mapsUrl}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-size:11px">Open in Maps ↗</a></span></p>`;
   }
 
+  // Checked-in-by line — shown whether or not map exists
+  const checkinLine = (a.checkedInBy)
+    ? `<p class="map-addr" style="margin-top:${a.geoLat ? '0' : '.5rem'}">
+        <i class="ti ti-user-check" style="color:var(--accent)"></i>
+        <span>Last checked in by <strong style="color:var(--text)">${a.checkedInBy}</strong>${a.checkedInAt ? ' &nbsp;<span style=\"font-size:11px;color:var(--text3)\">' + new Date(a.checkedInAt).toLocaleString() + '</span>' : ''}</span>
+       </p>`
+    : '';
+
   const fields = [
     ['Status', statusBadge(a.status)],
     ['Serial', a.serial || '—'],
@@ -918,10 +927,10 @@ function openDetailModal(assetId) {
   // Inject map between QR box and detail grid
   const existingMap = document.getElementById('detail-map-wrap');
   if (existingMap) existingMap.remove();
-  if (mapHTML) {
+  if (mapHTML || checkinLine) {
     const wrap = document.createElement('div');
     wrap.id = 'detail-map-wrap';
-    wrap.innerHTML = mapHTML;
+    wrap.innerHTML = mapHTML + (checkinLine || '');
     document.getElementById('detail-qr').closest('.qr-box').insertAdjacentElement('afterend', wrap);
   }
 
@@ -938,7 +947,7 @@ function openDetailModal(assetId) {
   if (canDo('assign'))   dBtns.push(`<button class="accent" onclick="closeModal('detailBackdrop');navAction('assign');prefillAssetId('assign','${a.id}')"><i class="ti ti-user-plus"></i> Assign</button>`);
   if (canDo('unassign')) dBtns.push(`<button onclick="closeModal('detailBackdrop');navAction('unassign');prefillAssetId('unassign','${a.id}')"><i class="ti ti-user-minus"></i> Unassign</button>`);
   if (canDo('checkin'))  dBtns.push(`<button onclick="closeModal('detailBackdrop');navAction('checkin');prefillAssetId('checkin','${a.id}')"><i class="ti ti-square-check"></i> Check in</button>`);
-  if (canDo('checkin') || canDo('assign')) dBtns.push(`<button onclick="printQR('${a.id}')"><i class="ti ti-printer"></i> Print QR</button>`);
+  if (canDo('printqr')) dBtns.push(`<button onclick="printQR('${a.id}')"><i class="ti ti-printer"></i> Print QR</button>`);
   document.getElementById('detail-actions').innerHTML = dBtns.join('');
 
   openModal('detailBackdrop');
@@ -1211,23 +1220,9 @@ function showSnapshotButton(prefix, stream, onScan) {
   const viewport = document.getElementById(prefix + '-viewport');
   if (!viewport) return;
 
-  // Inject the snapshot wrap INSIDE the viewport overlay so it doesn't
-  // add height to the modal — sits on top of the video feed instead.
   const wrap = document.createElement('div');
   wrap.id = prefix + '-snap-wrap';
-  wrap.style.cssText = [
-    'position:absolute',
-    'bottom:12px',
-    'left:50%',
-    'transform:translateX(-50%)',
-    'z-index:10',
-    'display:flex',
-    'flex-direction:column',
-    'align-items:center',
-    'gap:4px',
-    'width:calc(100% - 24px)',
-    'pointer-events:auto'
-  ].join(';');
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:.75rem;margin-bottom:.25rem';
 
   const btn = document.createElement('button');
   btn.style.cssText = [
@@ -1245,23 +1240,20 @@ function showSnapshotButton(prefix, stream, onScan) {
     'gap:6px',
     'width:100%',
     'user-select:none',
-    '-webkit-user-select:none',
-    'box-shadow:0 2px 12px rgba(0,0,0,.35)'
+    '-webkit-user-select:none'
   ].join(';');
   btn.innerHTML = '<i class="ti ti-camera"></i> Take snapshot to scan';
   btn.onclick = () => takeSnapshot(prefix, stream, onScan, btn);
 
   const hint = document.createElement('p');
-  hint.style.cssText = 'font-size:11px;color:rgba(255,255,255,.8);text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.5);margin:0';
-  hint.textContent = 'Hold the QR code steady, then tap';
+  hint.style.cssText = 'font-size:12px;color:var(--text3);text-align:center;margin:0';
+  hint.textContent = 'Hold the QR code steady in frame, then tap';
 
-  wrap.appendChild(btn); wrap.appendChild(hint);
+  wrap.appendChild(btn);
+  wrap.appendChild(hint);
+  viewport.insertAdjacentElement('afterend', wrap);
 
-  // Ensure viewport is position:relative so absolute child works
-  viewport.style.position = 'relative';
-  viewport.appendChild(wrap);
-
-  // Canvas stays outside viewport (hidden, for processing only)
+  // Hidden canvas for pixel processing — outside modal flow
   let canvas = document.getElementById(prefix + '-snap-canvas');
   if (!canvas) {
     canvas = document.createElement('canvas');
@@ -1663,11 +1655,11 @@ let userData     = [];    // loaded from users.json + localStorage
 
 // Role permission matrix
 const ROLE_PERMS = {
-  Administrator: { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','export'] },
-  Manager:       { pages:['dashboard','assets','reports'],         actions:['scan','checkin','assign','unassign','addasset','export'] },
-  Technician:    { pages:['dashboard','assets'],                   actions:['scan','checkin'] },
+  Administrator: { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','export','printqr'] },
+  Manager:       { pages:['dashboard','assets','reports'],         actions:['scan','checkin','assign','unassign','addasset','export','printqr'] },
+  Technician:    { pages:['dashboard','assets'],                   actions:['scan','checkin','printqr'] },
   Driver:        { pages:[],                                       actions:['scan','checkin'] },
-  Viewer:        { pages:['assets'],                              actions:['scan'] },
+  Viewer:        { pages:['assets'],                               actions:['scan'] },
   Guest:         { pages:['dashboard'],                            actions:[] },
 };
 
@@ -1787,6 +1779,8 @@ function applyRoleUI() {
     if (el) el.style.display = (page === 'dashboard' || perms.pages.includes(page)) ? '' : 'none';
   });
   // Admin page button
+  const addBtn = document.getElementById('nav-btn-addasset');
+  if (addBtn) addBtn.style.display = canDo('addasset') ? '' : 'none';
   const adminBtn = document.getElementById('nav-btn-admin');
   if (adminBtn) adminBtn.style.display = role === 'Administrator' ? '' : 'none';
 
