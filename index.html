@@ -233,7 +233,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v16</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v17</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -669,6 +669,7 @@ const LS_KEY = 'ims_assets_overrides';
 async function loadData() {
   try {
     const res = await fetch('assets.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
     assetData = json.assets || [];
   } catch(e) {
@@ -1630,6 +1631,7 @@ async function sha256(message) {
 async function loadUsers() {
   try {
     const res = await fetch('users.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const json = await res.json();
     userData = json.users || [];
   } catch(e) { userData = []; }
@@ -1870,30 +1872,70 @@ function navAction(action) {
 }
 
 /* ═══════════════════════════════════════════════
-   INIT
+   INIT — synchronous work runs first so the page
+   is always interactive regardless of fetch outcome
 ═══════════════════════════════════════════════ */
-applyTheme(localStorage.getItem('ims-theme')||'light');
+
+// 1. Theme — sync, no network needed
+applyTheme(localStorage.getItem('ims-theme') || 'light');
+
+// 2. Date field
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('assign-date').value = today;
 
-// Also wire admin orbital item
+// 3. Wire admin orbital item
 const oiAdmin = document.getElementById('oi-admin');
 if (oiAdmin) oiAdmin.addEventListener('click', () => { closeOrbit(); setTimeout(() => showPage('admin'), 160); });
 
-(async () => {
-  await loadUsers();
-  // Restore session
+// 4. Restore session from localStorage synchronously (no network needed)
+//    so applyRoleUI() can run before any fetch completes
+(function restoreSession() {
   try {
     const sess = JSON.parse(localStorage.getItem('ims_session') || 'null');
     if (sess && sess.username) {
-      const u = userData.find(x => x.username === sess.username && x.active !== false);
-      if (u) currentUser = { username: u.username, name: u.name, role: u.role };
+      // Restore from session cache — will be validated against users.json after load
+      currentUser = { username: sess.username, name: sess.name || sess.username, role: sess.role || 'Viewer' };
     }
   } catch(e) {}
-  applyRoleUI();
-  await loadData();
-  // If no session, show login gate
-  if (!currentUser) openModal('loginBackdrop');
+})();
+
+// 5. Apply role UI immediately with whatever session we have (makes nav interactive now)
+applyRoleUI();
+
+// 6. Async: load users.json + assets.json — page is already interactive during this
+(async () => {
+  try {
+    // Load users first so we can validate the restored session against real data
+    await loadUsers();
+
+    // Re-validate restored session against loaded user data
+    if (currentUser) {
+      const u = userData.find(x => x.username === currentUser.username && x.active !== false);
+      if (u) {
+        // Update role in case it changed since session was saved
+        currentUser.name = u.name;
+        currentUser.role = u.role;
+        localStorage.setItem('ims_session', JSON.stringify(currentUser));
+      } else {
+        // User no longer exists or is deactivated — sign out
+        currentUser = null;
+        localStorage.removeItem('ims_session');
+      }
+      applyRoleUI();
+    }
+
+    // Load asset data
+    await loadData();
+
+    // Show login modal if still no valid session
+    if (!currentUser) openModal('loginBackdrop');
+
+  } catch(e) {
+    // Catch-all: even if everything fails, page remains usable
+    console.error('IMS init error:', e);
+    renderAll();
+    if (!currentUser) openModal('loginBackdrop');
+  }
 })();
 </script>
 </body>
