@@ -1,0 +1,52 @@
+{
+  "users": [
+    {
+      "username": "admin@ims.local",
+      "passwordHash": "0ea13d35da4840f89c1eaafe3ed36bc541e6aea03ed59e2c6b9fb06e9385b38b",
+      "salt": "5e58712f67bf83f1e9a385fb06d47f8e",
+      "role": "Administrator",
+      "name": "System Admin",
+      "active": true
+    },
+    {
+      "username": "manager@ims.local",
+      "passwordHash": "ebfcd75822c79ad75554d1860753116c30494097f8defd0accd0c1b3aa6df3ba",
+      "salt": "286193d4c9453ee2ac19bb73b3b5156b",
+      "role": "Manager",
+      "name": "Demo Manager",
+      "active": true
+    },
+    {
+      "username": "tech@ims.local",
+      "passwordHash": "e22b6d4830838e644be04749c2d306f673e258ec3df7ddab70d830c8360c89ee",
+      "salt": "4a1d0fac0261b264196dd23dd03887cd",
+      "role": "Technician",
+      "name": "Demo Technician",
+      "active": true
+    },
+    {
+      "username": "driver@ims.local",
+      "passwordHash": "e466e5903911b7ff1026c26d6e73c839844f42926a72845d59407f4de966b10a",
+      "salt": "a2868b3fdcdd9ee6247051e67cd5d956",
+      "role": "Driver",
+      "name": "Demo Driver",
+      "active": true
+    },
+    {
+      "username": "viewer@ims.local",
+      "passwordHash": "6f57b50a0287cfe52d61326ad4aeb937d6f87e421215a295a4ed2339c4b1eb96",
+      "salt": "a2c82e3dbd2c71ff697062fb4cddd1a3",
+      "role": "Viewer",
+      "name": "Demo Viewer",
+      "active": true
+    },
+    {
+      "username": "mess@lvexpo.com",
+      "passwordHash": "8c536a332cb4f699194788481ad779d52b8f4f9e85516367a549bfbb8419b73d",
+      "salt": "dfe1fb3af145d95ae93855130287fd53",
+      "role": "Administrator",
+      "name": "mess",
+      "active": true
+    }
+  ]
+}
