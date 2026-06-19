@@ -132,12 +132,12 @@ h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
 .login-modal{max-width:360px}
 .asset-form-modal{max-width:500px}
 .gen-modal{max-width:440px}
-.detail-modal{max-width:560px}
+.detail-modal{max-width:560px;padding:1.5rem}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:background .2s;z-index:2}
 .modal-close:hover{background:var(--bg3);color:var(--text)}
 .modal-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
-.modal-h2{font-size:18px;font-weight:500;margin-bottom:.25rem;display:flex;align-items:center;gap:8px;color:var(--text)}
+.modal-h2{font-size:18px;font-weight:500;margin-bottom:.25rem;display:flex;align-items:center;gap:8px;color:var(--text)}.detail-modal .modal-h2{justify-content:center;text-align:center}.detail-modal .modal-sub{text-align:center}
 .modal-h2 i{color:var(--accent)}
 
 /* FORMS */
@@ -180,8 +180,8 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .detail-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-weight:500}
 .detail-value{font-size:14px;color:var(--text)}
 .detail-notes{background:var(--bg2);border-radius:8px;padding:.75rem;font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
-.qr-box{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:1.25rem;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:1.25rem}
-.qr-box canvas,.qr-box img{border-radius:4px;display:block;max-width:200px;height:auto}
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:1rem;background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:1rem}
+.qr-box canvas,.qr-box img{border-radius:4px;display:block;width:160px!important;height:160px!important}
 .qr-id{font-size:13px;font-family:monospace;color:#333;letter-spacing:.05em;font-weight:600}
 
 /* DETAIL ACTIONS */
@@ -192,7 +192,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .detail-actions button.accent:hover{opacity:.88}
 .asset-map{width:100%;height:200px;border-radius:10px;border:.5px solid var(--border);margin-bottom:1.25rem;overflow:hidden;background:var(--bg2)}
 .asset-map iframe{width:100%;height:100%;border:none;display:block;border-radius:10px}
-.map-addr{font-size:12px;color:var(--text3);margin-top:-1rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:5px;line-height:1.4}
+.map-addr{font-size:12px;color:var(--text3);margin-top:-.5rem;margin-bottom:.75rem;display:flex;align-items:center;gap:5px;line-height:1.4;justify-content:center;text-align:center;flex-wrap:wrap}
 .map-addr i{font-size:14px;flex-shrink:0;margin-top:1px}
 
 /* ORBITAL WHEEL */
@@ -233,7 +233,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v21</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v22</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -883,14 +883,18 @@ function openDetailModal(assetId) {
   const qrContainer = document.getElementById('detail-qr');
   document.getElementById('detail-qr-label').textContent = a.id;
   qrContainer.innerHTML = '';
+  const isDark = document.getElementById('app').getAttribute('data-theme') === 'dark';
   new QRCode(qrContainer, {
     text:         a.id,
     width:        300,
     height:       300,
-    colorDark:    '#000000',
-    colorLight:   '#ffffff',
+    colorDark:    isDark ? '#ffffff' : '#000000',
+    colorLight:   isDark ? '#000000' : '#ffffff',
     correctLevel: QRCode.CorrectLevel.H
   });
+  // QR box background matches theme
+  const qrBox = qrContainer.closest('.qr-box');
+  if (qrBox) qrBox.style.background = isDark ? '#000' : '#fff';
 
   // Map — shown only when geo coordinates exist on asset
   let mapHTML = '';
@@ -919,7 +923,8 @@ function openDetailModal(assetId) {
     ['Status', statusBadge(a.status)],
     ['Serial', a.serial || '—'],
     ['Assigned to', a.assignedTo || 'Unassigned'],
-    ['Location', a.location || '—'],
+    ['Assigned date', a.assignedDate || '—'],
+    ['Approx. location', a.location || '—'],
     ['Purchase date', a.purchaseDate || '—'],
     ['Warranty expiry', a.warrantyExpiry || '—'],
   ];
@@ -1006,9 +1011,10 @@ function confirmAssign() {
   if (!user) { alert('Please enter a name or department to assign to.'); return; }
   const a = assetData.find(x => x.id.toLowerCase() === id.toLowerCase());
   if (!a) { alert('Asset not found: ' + id); return; }
-  a.assignedTo = user;
-  a.location   = document.getElementById('assign-location').value.trim() || a.location;
-  a.status     = 'Active';
+  a.assignedTo   = user;
+  a.assignedDate = document.getElementById('assign-date').value || new Date().toISOString().split('T')[0];
+  a.location     = document.getElementById('assign-location').value.trim() || a.location;
+  a.status       = 'Active';
   if (document.getElementById('assign-notes').value.trim()) a.notes = document.getElementById('assign-notes').value.trim();
   saveOverride(a);
   renderAll();
@@ -1020,8 +1026,9 @@ function confirmUnassign() {
   if (!id) { alert('Please enter or scan an asset ID.'); return; }
   const a = assetData.find(x => x.id.toLowerCase() === id.toLowerCase());
   if (!a) { alert('Asset not found: ' + id); return; }
-  a.assignedTo = '';
-  a.status     = document.getElementById('unassign-newstatus').value;
+  a.assignedTo   = '';
+  a.assignedDate = '';
+  a.status       = document.getElementById('unassign-newstatus').value;
   if (document.getElementById('unassign-notes').value.trim()) a.notes = document.getElementById('unassign-notes').value.trim();
   saveOverride(a);
   renderAll();
@@ -1040,6 +1047,7 @@ async function confirmCheckin() {
   if (!a) { alert('Asset not found: ' + id); return; }
 
   a.assignedTo   = '';
+  a.assignedDate = '';
   a.status       = 'Unassigned';
   a.checkedInBy  = currentUser ? currentUser.name : 'Unknown';
   a.checkedInAt  = new Date().toISOString();
@@ -1814,11 +1822,14 @@ function applyRoleUI() {
     if (el) el.style.display = check() ? '' : 'none';
   });
 
-  // Dashboard — hide panels for Driver/Viewer/Guest
-  const hideDash = ['Driver','Guest'].includes(role);
+  // Stats cards always visible to any logged-in user
+  // Panels and category table hidden for Driver/Viewer/Guest
+  const hidePanels = !isAuth || ['Driver','Viewer','Guest'].includes(role);
   document.querySelectorAll('.panels, #category-table').forEach(el => {
-    el.style.display = hideDash ? 'none' : '';
+    el.style.display = hidePanels ? 'none' : '';
   });
+  const statsGrid = document.querySelector('.stats-grid');
+  if (statsGrid) statsGrid.style.display = isAuth ? '' : 'none';
 
   // Asset detail actions — strip what the role can't do
   // (handled dynamically inside openDetailModal)
