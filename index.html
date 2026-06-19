@@ -108,6 +108,8 @@ h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
 [data-theme="dark"] .badge-red{color:#f87171}
 [data-theme="dark"] .badge-blue{color:#60a5fa}
 [data-theme="dark"] .badge-gray{color:#aaa}
+.badge-master{background:rgba(139,92,246,.15);color:#7c3aed}
+[data-theme="dark"] .badge-master{color:#c4b5fd}
 
 /* ASSETS PAGE */
 .page-toolbar{display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center}
@@ -242,7 +244,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.24</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.25</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -351,7 +353,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
       <p class="subtitle">User management — assign roles and manage access</p>
       <div class="page-toolbar">
         <input class="search-box" type="search" id="admin-search" placeholder="Search users…" oninput="renderAdminPage()">
-        <button class="nav-btn primary" onclick="openModal('addUserBackdrop')"><i class="ti ti-user-plus"></i> Add user</button>
+        <button class="nav-btn primary" onclick="openAddUserModal()"><i class="ti ti-user-plus"></i> Add user</button>
       </div>
       <div id="admin-user-list"></div>
 
@@ -413,7 +415,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
     </div>
   </div>
 
-  <!-- ADD USER MODAL (Admin only) -->
+  <!-- ADD USER MODAL -->
   <div class="modal-backdrop" id="addUserBackdrop" onclick="backdropClose('addUserBackdrop',event)">
     <div class="asset-form-modal" role="dialog" aria-modal="true">
       <button class="modal-close" onclick="closeModal('addUserBackdrop')"><i class="ti ti-x"></i></button>
@@ -427,6 +429,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         <div class="form-group"><label>Password</label><input type="password" class="form-input" id="nu-password" placeholder="Minimum 8 characters"></div>
         <div class="form-group"><label>Role</label>
           <select class="form-input" id="nu-role">
+            <option id="nu-role-master" style="display:none">Master</option>
             <option>Administrator</option><option>Manager</option><option selected>Technician</option>
             <option>Driver</option><option>Viewer</option>
           </select>
@@ -440,28 +443,71 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
     </div>
   </div>
 
-  <!-- EDIT USER MODAL (Admin only) -->
+  <!-- PROFILE MODAL (replaces simple edit — full detail view like asset modal) -->
   <div class="modal-backdrop" id="editUserBackdrop" onclick="backdropClose('editUserBackdrop',event)">
-    <div class="asset-form-modal" role="dialog" aria-modal="true">
+    <div class="detail-modal" role="dialog" aria-modal="true">
       <button class="modal-close" onclick="closeModal('editUserBackdrop')"><i class="ti ti-x"></i></button>
-      <h2 class="modal-h2"><i class="ti ti-user-edit"></i> Edit user</h2>
       <input type="hidden" id="eu-username">
-      <div class="form-row">
-        <div class="form-group"><label>Full name</label><input type="text" class="form-input" id="eu-name"></div>
-        <div class="form-group"><label>Role</label>
-          <select class="form-input" id="eu-role">
-            <option>Administrator</option><option>Manager</option><option>Technician</option>
-            <option>Driver</option><option>Viewer</option>
-          </select>
+
+      <!-- Profile header -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-bottom:1.25rem">
+        <div id="eu-avatar-display" style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600"></div>
+        <div style="text-align:center">
+          <div id="eu-name-display" style="font-size:18px;font-weight:500;color:var(--text)"></div>
+          <div id="eu-email-display" style="font-size:13px;color:var(--text3);font-family:monospace"></div>
         </div>
+        <div id="eu-status-badge"></div>
       </div>
-      <div class="form-group"><label>New password <span style="font-size:11px;color:var(--text3)">(leave blank to keep current)</span></label>
-        <input type="password" class="form-input" id="eu-password" placeholder="New password…">
+
+      <!-- Account status toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)">
+          <i class="ti ti-toggle-left" style="font-size:18px;color:var(--accent)"></i>
+          Account status
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <span id="eu-status-label" style="color:var(--text2)">Active</span>
+          <div style="position:relative;width:40px;height:22px">
+            <input type="checkbox" id="eu-active" style="opacity:0;width:0;height:0;position:absolute">
+            <span id="eu-toggle-track" onclick="document.getElementById('eu-active').click();updateToggle()" style="position:absolute;inset:0;background:var(--bg3);border-radius:11px;cursor:pointer;transition:background .2s"></span>
+            <span id="eu-toggle-thumb" style="position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none"></span>
+          </div>
+        </label>
       </div>
-      <div class="form-group" style="display:flex;align-items:center;gap:10px">
-        <input type="checkbox" id="eu-active" style="width:16px;height:16px;cursor:pointer">
-        <label for="eu-active" style="font-size:13px;cursor:pointer;margin:0">Account active</label>
+
+      <!-- Role assignment -->
+      <div style="margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.5rem;text-align:center">Role</div>
+        <div id="eu-role-pills" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:.5rem"></div>
+        <select class="form-input" id="eu-role" style="text-align:center">
+          <option id="eu-role-master" style="display:none">Master</option>
+          <option>Administrator</option><option>Manager</option><option>Technician</option>
+          <option>Driver</option><option>Viewer</option>
+        </select>
+        <p id="eu-role-locked-msg" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin-top:.35rem"><i class="ti ti-lock"></i> Only a Master account can change a Master's role</p>
       </div>
+
+      <!-- Name edit -->
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label style="text-align:center;display:block">Display name</label>
+        <input type="text" class="form-input" id="eu-name" style="text-align:center">
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group" style="margin-bottom:.75rem">
+        <label style="text-align:center;display:block">Profile notes</label>
+        <textarea class="form-input" id="eu-notes" placeholder="Internal notes about this account…" style="min-height:56px;text-align:center"></textarea>
+      </div>
+
+      <!-- Password reset -->
+      <div style="background:var(--bg2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.5rem;text-align:center">Reset password</div>
+        <input type="password" class="form-input" id="eu-password" placeholder="New password (leave blank to keep current)" style="margin-bottom:.5rem;text-align:center">
+        <input type="password" class="form-input" id="eu-password2" placeholder="Confirm new password" style="text-align:center">
+      </div>
+
+      <div id="eu-error" style="display:none;background:rgba(220,38,38,.1);color:#b91c1c;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:.75rem;text-align:center"></div>
+
       <div class="form-actions">
         <button class="btn-full btn-ghost" onclick="closeModal('editUserBackdrop')">Cancel</button>
         <button class="btn-full btn-primary" onclick="saveEditUser()"><i class="ti ti-check"></i> Save changes</button>
@@ -1667,6 +1713,7 @@ let userData     = [];    // loaded from users.json + localStorage
 
 // Role permission matrix
 const ROLE_PERMS = {
+  Master:        { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','export','printqr','master'] },
   Administrator: { pages:['dashboard','assets','reports','admin'], actions:['scan','checkin','assign','unassign','addasset','export','printqr'] },
   Manager:       { pages:['dashboard','assets','reports'],         actions:['scan','checkin','assign','unassign','addasset','export','printqr'] },
   Technician:    { pages:['dashboard','assets'],                   actions:['scan','checkin','printqr'] },
@@ -1794,7 +1841,7 @@ function applyRoleUI() {
   const addBtn = document.getElementById('nav-btn-addasset');
   if (addBtn) addBtn.style.display = canDo('addasset') ? '' : 'none';
   const adminBtn = document.getElementById('nav-btn-admin');
-  if (adminBtn) adminBtn.style.display = role === 'Administrator' ? '' : 'none';
+  if (adminBtn) adminBtn.style.display = ['Master','Administrator'].includes(role) ? '' : 'none';
 
   // Action buttons
   const actionMap = {
@@ -1818,7 +1865,7 @@ function applyRoleUI() {
     'oi-unassign':  () => canDo('unassign'),
     'oi-assign':    () => canDo('assign'),
     'oi-addasset':  () => canDo('addasset'),
-    'oi-admin':     () => role === 'Administrator',
+    'oi-admin':     () => ['Master','Administrator'].includes(role),
     'oi-login':     () => !isAuth,
     'oi-signout':   () => isAuth,
   };
@@ -1841,8 +1888,16 @@ function applyRoleUI() {
 }
 
 /* ── ADMIN PAGE ─────────────────────────────── */
+/* ── Role badge helper ───────────────────────────── */
+function roleBadge(r) {
+  const m = {Master:'master',Administrator:'red',Manager:'blue',Technician:'green',Driver:'amber',Viewer:'gray'};
+  return `<span class="badge badge-${m[r]||'gray'}">${r}</span>`;
+}
+
+/* ── Admin page render ───────────────────────────── */
 function renderAdminPage() {
-  if (!currentUser || currentUser.role !== 'Administrator') return;
+  if (!currentUser || !['Master','Administrator'].includes(currentUser.role)) return;
+  const isMaster = currentUser.role === 'Master';
   const query = (document.getElementById('admin-search')?.value || '').toLowerCase();
   const list  = document.getElementById('admin-user-list');
   const filtered = userData.filter(u =>
@@ -1852,52 +1907,136 @@ function renderAdminPage() {
     list.innerHTML = `<div class="empty"><i class="ti ti-users"></i><p>No users found.</p></div>`;
     return;
   }
-  const roleBadge = r => {
-    const m = {Administrator:'red',Manager:'blue',Technician:'green',Driver:'amber',Viewer:'gray'};
-    return `<span class="badge badge-${m[r]||'gray'}">${r}</span>`;
-  };
-  list.innerHTML = filtered.map(u => `
-    <div class="user-card">
-      <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+  list.innerHTML = filtered.map(u => {
+    // Admins cannot edit Master accounts — only Master can edit Master
+    const canEdit = isMaster || u.role !== 'Master';
+    const isInactive = u.active === false;
+    return `
+    <div class="user-card" style="${isInactive ? 'opacity:.55' : ''}">
+      <div class="user-avatar" style="background:${u.role==='Master'?'#7c3aed':''}">${u.name.charAt(0).toUpperCase()}</div>
       <div class="user-info">
-        <div class="user-name">${u.name} ${u.active === false ? '<span style="font-size:11px;color:#dc2626">(inactive)</span>' : ''}</div>
+        <div class="user-name">${u.name} ${isInactive ? '<span style="font-size:11px;color:#dc2626">(inactive)</span>' : ''}</div>
         <div class="user-email">${u.username}</div>
       </div>
       ${roleBadge(u.role)}
       <div class="user-actions">
-        <button title="Edit" onclick="openEditUser('${u.username}')"><i class="ti ti-edit"></i></button>
-        ${u.username !== currentUser.username ? `<button title="${u.active===false?'Reactivate':'Deactivate'}" onclick="toggleUserActive('${u.username}')"><i class="ti ti-${u.active===false?'user-check':'user-off'}"></i></button>` : ''}
+        ${canEdit ? `<button title="View profile" onclick="openEditUser('${u.username}')"><i class="ti ti-user-circle"></i></button>` : '<button disabled title="Master only" style="opacity:.3"><i class="ti ti-lock"></i></button>'}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
+/* ── Open profile modal ──────────────────────────── */
 function openEditUser(username) {
   const u = userData.find(x => x.username === username);
   if (!u) return;
-  document.getElementById('eu-username').value = u.username;
-  document.getElementById('eu-name').value     = u.name;
-  document.getElementById('eu-role').value     = u.role;
-  document.getElementById('eu-password').value = '';
-  document.getElementById('eu-active').checked = u.active !== false;
+
+  const isMaster    = currentUser.role === 'Master';
+  const targetIsMaster = u.role === 'Master';
+  // Only Master can edit another Master; Admins cannot
+  if (targetIsMaster && !isMaster) return;
+
+  document.getElementById('eu-username').value    = u.username;
+  document.getElementById('eu-name').value        = u.name;
+  document.getElementById('eu-notes').value       = u.notes || '';
+  document.getElementById('eu-password').value    = '';
+  document.getElementById('eu-password2').value   = '';
+  document.getElementById('eu-error').style.display = 'none';
+
+  // Header display
+  document.getElementById('eu-avatar-display').textContent = u.name.charAt(0).toUpperCase();
+  document.getElementById('eu-avatar-display').style.background = u.role === 'Master' ? '#7c3aed' : '';
+  document.getElementById('eu-name-display').textContent  = u.name;
+  document.getElementById('eu-email-display').textContent = u.username;
+  document.getElementById('eu-status-badge').innerHTML    = roleBadge(u.role);
+
+  // Active toggle
+  const active = u.active !== false;
+  document.getElementById('eu-active').checked = active;
+  updateToggleState(active);
+
+  // Role selector — Master option visible only to Master
+  const masterOpt = document.getElementById('eu-role-master');
+  if (masterOpt) masterOpt.style.display = isMaster ? '' : 'none';
+  document.getElementById('eu-role').value = u.role;
+
+  // Lock role field if editing a Master account (only Master can change it, already gated above)
+  // or if editing own account role (prevent self-demotion)
+  const roleLocked = (targetIsMaster) || (u.username === currentUser.username);
+  document.getElementById('eu-role').disabled = roleLocked;
+  document.getElementById('eu-role-locked-msg').style.display = roleLocked ? '' : 'none';
+  document.getElementById('eu-role-locked-msg').textContent = u.username === currentUser.username
+    ? '⚠ You cannot change your own role'
+    : '🔒 Only a Master account can change a Master’s role';
+
+  // Role pills (read-only display of current role)
+  document.getElementById('eu-role-pills').innerHTML = roleBadge(u.role);
+
   openModal('editUserBackdrop');
 }
 
+/* ── Toggle visual state ─────────────────────────── */
+function updateToggle() {
+  const active = document.getElementById('eu-active').checked;
+  updateToggleState(active);
+}
+function updateToggleState(active) {
+  document.getElementById('eu-toggle-track').style.background = active ? 'var(--accent)' : 'var(--bg3)';
+  document.getElementById('eu-toggle-thumb').style.transform  = active ? 'translateX(18px)' : 'translateX(0)';
+  document.getElementById('eu-status-label').textContent = active ? 'Active' : 'Inactive';
+}
+
+/* ── Save profile changes ────────────────────────── */
 async function saveEditUser() {
   const username = document.getElementById('eu-username').value;
   const u = userData.find(x => x.username === username);
   if (!u) return;
-  u.name   = document.getElementById('eu-name').value.trim() || u.name;
-  u.role   = document.getElementById('eu-role').value;
-  u.active = document.getElementById('eu-active').checked;
-  const newPass = document.getElementById('eu-password').value;
-  if (newPass) {
-    if (newPass.length < 8) { alert('Password must be at least 8 characters.'); return; }
+
+  const errEl = document.getElementById('eu-error');
+  errEl.style.display = 'none';
+
+  // Password validation
+  const newPass  = document.getElementById('eu-password').value;
+  const newPass2 = document.getElementById('eu-password2').value;
+  if (newPass || newPass2) {
+    if (newPass.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display='block'; return; }
+    if (newPass !== newPass2) { errEl.textContent = 'Passwords do not match.'; errEl.style.display='block'; return; }
     u.salt         = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
     u.passwordHash = await sha256(u.salt + newPass);
   }
+
+  u.name  = document.getElementById('eu-name').value.trim() || u.name;
+  u.notes = document.getElementById('eu-notes').value.trim();
+  u.active = document.getElementById('eu-active').checked;
+
+  // Role — only update if not locked
+  if (!document.getElementById('eu-role').disabled) {
+    u.role = document.getElementById('eu-role').value;
+  }
+
+  // Master protection — cannot deactivate the only active Master
+  if (u.role === 'Master' && !u.active) {
+    const activeMasters = userData.filter(x => x.role === 'Master' && x.active !== false && x.username !== u.username);
+    if (activeMasters.length === 0) { errEl.textContent = 'Cannot deactivate the only active Master account.'; errEl.style.display='block'; return; }
+  }
+
   saveUserOverride(u);
+  // If editing own account — refresh session name
+  if (u.username === currentUser.username) {
+    currentUser.name = u.name;
+    localStorage.setItem('ims_session', JSON.stringify(currentUser));
+    document.getElementById('nav-user-name').textContent = u.name;
+    document.getElementById('nav-user-avatar').textContent = u.name.charAt(0).toUpperCase();
+  }
   closeModal('editUserBackdrop');
   renderAdminPage();
+}
+
+function openAddUserModal() {
+  // Show Master role option only to Master accounts
+  const masterOpt = document.getElementById('nu-role-master');
+  if (masterOpt) masterOpt.style.display = currentUser && currentUser.role === 'Master' ? '' : 'none';
+  openModal('addUserBackdrop');
 }
 
 async function saveNewUser() {
@@ -1910,14 +2049,19 @@ async function saveNewUser() {
   if (!name || !email || !pass) { errEl.textContent='All fields are required.'; errEl.style.display='block'; return; }
   if (pass.length < 8) { errEl.textContent='Password must be at least 8 characters.'; errEl.style.display='block'; return; }
   if (userData.find(u => u.username === email)) { errEl.textContent='A user with this email already exists.'; errEl.style.display='block'; return; }
+  // Only Master can create another Master
+  if (role === 'Master' && currentUser.role !== 'Master') { errEl.textContent='Only a Master account can create another Master.'; errEl.style.display='block'; return; }
   errEl.style.display = 'none';
 
   const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
   const hash = await sha256(salt + pass);
-  const user = { username:email, name, role, passwordHash:hash, salt, active:true };
+  const user = { username:email, name, role, passwordHash:hash, salt, active:true, notes:'' };
   saveUserOverride(user);
   closeModal('addUserBackdrop');
   document.getElementById('nu-name').value = document.getElementById('nu-email').value = document.getElementById('nu-password').value = '';
+  // Show Master option in add modal only for Master accounts
+  const masterOpt = document.getElementById('nu-role-master');
+  if (masterOpt) masterOpt.style.display = currentUser.role === 'Master' ? '' : 'none';
   renderAdminPage();
 }
 

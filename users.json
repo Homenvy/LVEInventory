@@ -1,6 +1,15 @@
 {
   "users": [
     {
+      "username": "master@ims.local",
+      "passwordHash": "fb60a0dce0c1c3e46bcf19ab7c08d088bd602e1dedcb4ffdd6bc8b893ca92317",
+      "salt": "3ca6ca46e4478a64392c322f5cf7df32",
+      "role": "Administrator",
+      "name": "Master",
+      "active": true,
+      "notes": "System master account."
+    },
+    {
       "username": "admin@ims.local",
       "passwordHash": "0ea13d35da4840f89c1eaafe3ed36bc541e6aea03ed59e2c6b9fb06e9385b38b",
       "salt": "5e58712f67bf83f1e9a385fb06d47f8e",
@@ -44,7 +53,7 @@
       "username": "mess@lvexpo.com",
       "passwordHash": "8c536a332cb4f699194788481ad779d52b8f4f9e85516367a549bfbb8419b73d",
       "salt": "dfe1fb3af145d95ae93855130287fd53",
-      "role": "Administrator",
+      "role": "Master",
       "name": "mess",
       "active": true
     }
