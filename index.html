@@ -156,7 +156,8 @@ h1{font-size:22px;font-weight:500;color:var(--text);margin-bottom:.25rem}
 .form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500}
 .form-group input,.form-input{width:100%;padding:9px 12px;border:.5px solid var(--border2);border-radius:8px;background:var(--bg2);color:var(--text);font-size:14px;outline:none;transition:border-color .2s,background .3s;text-align:center}
 .form-group input:focus,.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-select.form-input{appearance:none}
+select.form-input{appearance:none;text-align:center}
+input[type="date"].form-input{text-align:center}
 textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-align:center}
 .form-actions{display:flex;gap:8px;margin-top:1.5rem}
 .btn-full{flex:1;padding:10px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer!important;transition:background .2s,opacity .2s;border:.5px solid var(--border2);color:var(--text2);user-select:none;-webkit-user-select:none;pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:6px;text-align:center}
@@ -262,7 +263,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.31</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.32</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -384,7 +385,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
           <table class="asset-table role-ref-table" style="margin-top:.5rem;min-width:560px">
             <thead><tr><th>Role</th><th>Dashboard</th><th>Assets</th><th>Scan</th><th>Check-in</th><th>Assign</th><th>Add/Edit</th><th>Reports</th><th>Admin</th></tr></thead>
             <tbody>
-              <tr><td><span class="badge badge-master">Master</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅ + user mgmt</td></tr>
+              <tr id="role-ref-master-row"><td><span class="badge badge-master">Master</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅ + user mgmt</td></tr>
               <tr><td><span class="badge badge-red">Administrator</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
               <tr><td><span class="badge badge-blue">Manager</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
               <tr><td><span class="badge badge-green">Technician</span></td><td>✅</td><td>View</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
@@ -396,7 +397,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
         </div>
         <!-- Mobile: stacked role cards -->
         <div class="role-ref-cards" style="display:none;margin-top:.75rem">
-          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+          <div id="role-ref-master-card" style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
             <span class="badge badge-master" style="flex-shrink:0;margin-top:2px">Master</span>
             <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard · Assets · Scan · Check-in · Assign · Add/Edit · Reports · Admin + user mgmt</div>
           </div>
@@ -716,7 +717,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
     <div class="gen-modal" role="dialog" aria-modal="true">
       <button class="modal-close" onclick="stopCameraAndClose('assignBackdrop')"><i class="ti ti-x"></i></button>
       <h2 class="modal-h2"><i class="ti ti-user-plus"></i> Assign asset</h2>
-      <p class="modal-sub">Scan the asset QR code or enter the tag manually</p>
+      <p class="modal-sub" id="assign-sub">Scan the asset QR code or enter the tag manually</p>
       <div class="qr-viewport" id="assign-viewport">
         <video id="assign-video" autoplay playsinline muted></video>
         <div class="qr-frame">
@@ -750,7 +751,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
     <div class="gen-modal" role="dialog" aria-modal="true">
       <button class="modal-close" onclick="stopCameraAndClose('unassignBackdrop')"><i class="ti ti-x"></i></button>
       <h2 class="modal-h2"><i class="ti ti-user-minus"></i> Unassign asset</h2>
-      <p class="modal-sub">Scan the asset QR code or enter the tag manually</p>
+      <p class="modal-sub" id="unassign-sub">Scan the asset QR code or enter the tag manually</p>
       <div class="qr-viewport" id="unassign-viewport">
         <video id="unassign-video" autoplay playsinline muted></video>
         <div class="qr-frame">
@@ -1359,21 +1360,38 @@ function showCheckinToast(msg, success, assetId) {
 /* Geolocation + reverse geocode — start as early as possible so it's ready by checkin time */
 function startCheckinGeo() {
   // If we already have coordinates don't restart — just keep what we have
-  if (window._checkinGeo && window._checkinGeo.lat) return;
+  if (window._checkinGeo && window._checkinGeo.lat) {
+    // Already have a fix — update the status element if it's visible
+    const statusEl = document.getElementById('checkin-geo-text');
+    if (statusEl && window._checkinGeo.addr) {
+      statusEl.innerHTML = `<span style="color:#16a34a;margin-right:4px">✓</span>${window._checkinGeo.addr}`;
+    }
+    return;
+  }
   window._checkinGeo = null;
   const statusEl = document.getElementById('checkin-geo-text');
   if (!navigator.geolocation) {
-    if (statusEl) statusEl.textContent = 'Geolocation not supported by this browser.';
+    if (statusEl) statusEl.innerHTML = `<i class="ti ti-map-pin-off" style="font-size:14px;margin-right:4px"></i>Location not supported`;
     return;
   }
-  if (statusEl) statusEl.textContent = 'Requesting location…';
+  // Pulsing dot + message while waiting
+  if (statusEl) statusEl.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d97706;margin-right:6px;animation:geoPulse 1s ease-in-out infinite"></span>Waiting for location…`;
+
+  // Inject pulse keyframes once
+  if (!document.getElementById('geo-pulse-style')) {
+    const s = document.createElement('style');
+    s.id = 'geo-pulse-style';
+    s.textContent = '@keyframes geoPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}';
+    document.head.appendChild(s);
+  }
+
   navigator.geolocation.getCurrentPosition(
     async pos => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       // Store coords immediately — available to autoCheckin even before address resolves
       window._checkinGeo = { lat, lng, addr: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
-      if (statusEl) statusEl.textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} — resolving address…`;
+      if (statusEl) statusEl.innerHTML = `<span style="color:#16a34a;margin-right:4px">✓</span>Location ready — resolving address…`;
       // Reverse geocode with Nominatim (free, no key)
       try {
         const res  = await fetch(
@@ -1383,16 +1401,16 @@ function startCheckinGeo() {
         const data = await res.json();
         const addr = data.display_name || window._checkinGeo.addr;
         window._checkinGeo.addr = addr;
-        if (statusEl) statusEl.innerHTML = `<i class="ti ti-map-pin" style="font-size:14px;color:var(--accent)"></i>&nbsp;${addr}`;
+        if (statusEl) statusEl.innerHTML = `<i class="ti ti-map-pin" style="font-size:14px;color:#16a34a;margin-right:4px"></i><span style="color:#16a34a;font-weight:500">Location ready</span> &nbsp;·&nbsp; ${addr}`;
       } catch(e) {
-        // Coords already stored — address stays as coordinate string, that's fine
-        if (statusEl) statusEl.textContent = window._checkinGeo.addr;
+        // Coords already stored — address stays as coordinate string
+        if (statusEl) statusEl.innerHTML = `<span style="color:#16a34a;margin-right:4px">✓</span>Location ready (coords only)`;
       }
     },
     err => {
       window._checkinGeo = null;
       const msgs = { 1:'Location permission denied.', 2:'Location unavailable.', 3:'Location request timed out.' };
-      if (statusEl) statusEl.textContent = msgs[err.code] || 'Location unavailable.';
+      if (statusEl) statusEl.innerHTML = `<i class="ti ti-map-pin-off" style="font-size:14px;color:#d97706;margin-right:4px"></i>${msgs[err.code] || 'Location unavailable — check-in will proceed without geo.'}`;
     },
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
   );
@@ -1446,9 +1464,8 @@ async function startCamera(prefix, onScan) {
   if (resEl) resEl.classList.add('hidden');
   if (errEl) errEl.classList.add('hidden');
   removeSnapshotUI(prefix);
-  // Ensure laser/frame are visible when camera is active
-  const vp = document.getElementById(prefix + '-viewport');
-  if (vp) vp.classList.remove('cam-off');
+  // Ensure viewport and subtitle are visible when camera is active
+  restoreViewport(prefix);
 
   if (!navigator.mediaDevices?.getUserMedia) {
     showCamError(prefix, 'Camera not supported in this browser.');
@@ -1635,18 +1652,32 @@ function stopStream(prefix) {
   if (activeStreams[prefix])   { activeStreams[prefix].getTracks().forEach(t => t.stop()); delete activeStreams[prefix]; }
   const v = document.getElementById(prefix + '-video');
   if (v) v.srcObject = null;
-  // Mark viewport so laser/corners hide
-  const vp = document.getElementById(prefix + '-viewport');
-  if (vp) vp.classList.add('cam-off');
+  collapseViewport(prefix);
 }
+
+/* Collapse the camera viewport and hide the scan instruction subtitle */
+function collapseViewport(prefix) {
+  const vp  = document.getElementById(prefix + '-viewport');
+  const sub = document.getElementById(prefix + '-sub');
+  if (vp)  vp.classList.add('cam-off');
+  if (sub) sub.style.display = 'none';
+}
+
+/* Restore viewport and subtitle for a fresh camera open */
+function restoreViewport(prefix) {
+  const vp  = document.getElementById(prefix + '-viewport');
+  const sub = document.getElementById(prefix + '-sub');
+  if (vp)  vp.classList.remove('cam-off');
+  if (sub) sub.style.display = '';
+}
+
 function stopCameraAndClose(backdropId) {
   const prefix = backdropId.replace('Backdrop','');
   stopStream(prefix);
   removeSnapshotUI(prefix);
   closeModal(backdropId);
-  // Reset viewport so next open starts fresh
-  const vp = document.getElementById(prefix + '-viewport');
-  if (vp) vp.classList.remove('cam-off');
+  // Restore viewport so next fresh open shows the camera again
+  restoreViewport(prefix);
   // Clear geo cache when any scanning modal closes so next session gets a fresh fix
   if (prefix === 'checkin' || prefix === 'scan') window._checkinGeo = null;
 }
@@ -1667,28 +1698,28 @@ function navAction(action, opts) {
   if (action === 'assign') {
     openModal('assignBackdrop');
     if (!opts.skipCamera) {
+      restoreViewport('assign');
       startCamera('assign', val => {
         stopStream('assign');
         document.getElementById('assign-asset-id').value = val;
         lookupAssetById('assign');
       });
     } else {
-      // Already have asset ID from scan — collapse camera viewport immediately
-      const vp = document.getElementById('assign-viewport');
-      if (vp) vp.classList.add('cam-off');
+      // Already have asset ID from scan — collapse camera viewport and subtitle immediately
+      collapseViewport('assign');
     }
   } else if (action === 'unassign') {
     openModal('unassignBackdrop');
     if (!opts.skipCamera) {
+      restoreViewport('unassign');
       startCamera('unassign', val => {
         stopStream('unassign');
         document.getElementById('unassign-asset-id').value = val;
         lookupAssetById('unassign');
       });
     } else {
-      // Already have asset ID from scan — collapse camera viewport immediately
-      const vp = document.getElementById('unassign-viewport');
-      if (vp) vp.classList.add('cam-off');
+      // Already have asset ID from scan — collapse camera viewport and subtitle immediately
+      collapseViewport('unassign');
     }
   } else if (action === 'scan') {
     openModal('scanBackdrop');
@@ -2231,6 +2262,12 @@ function roleColor(r) {
 function renderAdminPage() {
   if (!currentUser || !['Master','Administrator'].includes(currentUser.role)) return;
   const isMaster = currentUser.role === 'Master';
+
+  // Master row in role reference — only visible to Master accounts
+  const refRow  = document.getElementById('role-ref-master-row');
+  const refCard = document.getElementById('role-ref-master-card');
+  if (refRow)  refRow.style.display  = isMaster ? '' : 'none';
+  if (refCard) refCard.style.display = isMaster ? '' : 'none';
   const query = (document.getElementById('admin-search')?.value || '').toLowerCase();
   const list  = document.getElementById('admin-user-list');
   const filtered = userData.filter(u => {
