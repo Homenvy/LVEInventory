@@ -206,30 +206,36 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 .map-addr{font-size:12px;color:var(--text3);margin-top:-.5rem;margin-bottom:.75rem;display:flex;align-items:center;gap:5px;line-height:1.4;justify-content:center;text-align:center;flex-wrap:wrap}
 .map-addr i{font-size:14px;flex-shrink:0;margin-top:1px}
 
-/* ORBITAL WHEEL */
-.orbital-wrap{display:none;position:fixed;bottom:28px;right:22px;z-index:203;touch-action:none}
-.orbital-trigger{width:64px;height:64px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s;box-shadow:0 4px 20px rgba(0,0,0,.3);touch-action:manipulation}
-.orbital-trigger .icon-menu,.orbital-trigger .icon-close{font-size:26px;color:#fff;position:absolute;transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s}
+/* ORBITAL WHEEL — 15% size increase throughout */
+/* Trigger: 64 * 1.15 = ~74px */
+.orbital-wrap{display:none;position:fixed;bottom:24px;right:20px;z-index:400;touch-action:none}
+.orbital-trigger{width:74px;height:74px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:transform .3s cubic-bezier(.4,0,.2,1),background .3s;box-shadow:0 4px 24px rgba(0,0,0,.35);touch-action:manipulation}
+.orbital-trigger .icon-menu,.orbital-trigger .icon-close{font-size:30px;color:#fff;position:absolute;transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s}
 .orbital-trigger .icon-close{opacity:0;transform:rotate(-90deg)}
 .orbital-wrap.open .orbital-trigger .icon-menu{opacity:0;transform:rotate(90deg)}
 .orbital-wrap.open .orbital-trigger .icon-close{opacity:1;transform:rotate(0)}
 .orbital-wrap.open .orbital-trigger{transform:scale(1.08)}
-.orbit-canvas{position:fixed;pointer-events:none;z-index:199;transition:opacity .3s}
+/* Canvas/arc sit below modal backdrops (z 300) so the wheel slides behind modals naturally */
+.orbit-canvas{position:fixed;pointer-events:none;z-index:398;transition:opacity .3s}
 .orbit-canvas.hidden{opacity:0}
-.arc-touch{position:fixed;border-radius:50%;z-index:201;touch-action:none;cursor:grab}
+.arc-touch{position:fixed;border-radius:50%;z-index:399;touch-action:none;cursor:grab}
 .arc-touch.hidden{display:none}
-.orbit-item{position:fixed;width:54px;height:54px;border-radius:50%;background:var(--card);border:.5px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9px;color:var(--text2);z-index:202;cursor:pointer;transition:background .2s,opacity .3s;touch-action:manipulation;opacity:0;pointer-events:none}
-.orbit-item i{font-size:20px;color:var(--accent)}
-.orbit-item .sun-icon,.orbit-item .moon-icon{font-size:16px}
-.orbit-icon-wrap{position:relative;display:inline-block;width:20px;height:20px}
+/* Orbit items: 54 * 1.15 = ~62px */
+.orbit-item{position:fixed;width:62px;height:62px;border-radius:50%;background:var(--card);border:.5px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9px;color:var(--text2);z-index:399;cursor:pointer;transition:background .2s,opacity .3s;touch-action:manipulation;opacity:0;pointer-events:none}
+.orbit-item i{font-size:23px;color:var(--accent)}
+.orbit-item .sun-icon,.orbit-item .moon-icon{font-size:18px}
+.orbit-icon-wrap{position:relative;display:inline-block;width:23px;height:23px}
 .orbit-icon-wrap .sun-icon,.orbit-icon-wrap .moon-icon{left:0;top:0}
 .orbit-item.active-item{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 .orbit-item.visible{opacity:1;pointer-events:auto}
 
+/* Role reference table — scrollable wrapper on mobile */
+.role-ref-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -1.25rem;padding:0 1.25rem}
 @media(max-width:640px){
+  /* Orbital always visible */
   .desktop-nav .nav-links{display:none}
   .orbital-wrap{display:block}
-  main{padding:1.25rem 1rem 110px}
+  main{padding:1.25rem 1rem 120px}
   h1{font-size:19px}
   .stats-grid{grid-template-columns:1fr 1fr}
   .panels{grid-template-columns:1fr}
@@ -237,6 +243,11 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
   .detail-grid{grid-template-columns:1fr}
   .assets-grid{grid-template-columns:1fr}
   .detail-actions{flex-direction:column}
+  /* Modal close button — bottom-right so it's always thumb-reachable on tall modals */
+  .modal-close{top:auto;bottom:12px;right:12px;background:var(--bg3);border:.5px solid var(--border2);width:38px;height:38px;border-radius:50%;z-index:3}
+  /* Role reference — compact card layout instead of wide table */
+  .role-ref-table{display:none}
+  .role-ref-cards{display:block}
 }
 </style>
 </head>
@@ -244,7 +255,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.27</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.28</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -361,18 +372,52 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
 
       <div class="panel" style="margin-top:1.5rem">
         <h2><i class="ti ti-info-circle"></i> Role reference</h2>
-        <table class="asset-table" style="margin-top:.5rem">
-          <thead><tr><th>Role</th><th>Dashboard</th><th>Assets</th><th>Scan</th><th>Check-in</th><th>Assign</th><th>Add/Edit</th><th>Reports</th><th>Admin</th></tr></thead>
-          <tbody>
-            <tr><td><span class="badge badge-master">Master</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅ + user mgmt</td></tr>
-            <tr><td><span class="badge badge-red">Administrator</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
-            <tr><td><span class="badge badge-blue">Manager</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
-            <tr><td><span class="badge badge-green">Technician</span></td><td>✅</td><td>View</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
-            <tr><td><span class="badge badge-amber">Driver</span></td><td>Stats</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
-            <tr><td><span class="badge badge-gray">Viewer</span></td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
-            <tr><td><em style="color:var(--text3)">Guest</em></td><td>Stats</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
-          </tbody>
-        </table>
+        <!-- Desktop: full table -->
+        <div class="role-ref-scroll">
+          <table class="asset-table role-ref-table" style="margin-top:.5rem;min-width:560px">
+            <thead><tr><th>Role</th><th>Dashboard</th><th>Assets</th><th>Scan</th><th>Check-in</th><th>Assign</th><th>Add/Edit</th><th>Reports</th><th>Admin</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-master">Master</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅ + user mgmt</td></tr>
+              <tr><td><span class="badge badge-red">Administrator</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+              <tr><td><span class="badge badge-blue">Manager</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+              <tr><td><span class="badge badge-green">Technician</span></td><td>✅</td><td>View</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+              <tr><td><span class="badge badge-amber">Driver</span></td><td>Stats</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+              <tr><td><span class="badge badge-gray">Viewer</span></td><td>❌</td><td>❌</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+              <tr><td><em style="color:var(--text3)">Guest</em></td><td>Stats</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Mobile: stacked role cards -->
+        <div class="role-ref-cards" style="display:none;margin-top:.75rem">
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span class="badge badge-master" style="flex-shrink:0;margin-top:2px">Master</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard · Assets · Scan · Check-in · Assign · Add/Edit · Reports · Admin + user mgmt</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span class="badge badge-red" style="flex-shrink:0;margin-top:2px">Administrator</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard · Assets · Scan · Check-in · Assign · Add/Edit · Reports · Admin</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span class="badge badge-blue" style="flex-shrink:0;margin-top:2px">Manager</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard · Assets · Scan · Check-in · Assign · Add/Edit · Reports</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span class="badge badge-green" style="flex-shrink:0;margin-top:2px">Technician</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard (stats) · Assets (view) · Scan · Check-in · Print QR</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span class="badge badge-amber" style="flex-shrink:0;margin-top:2px">Driver</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard (stats) · Scan · Check-in</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span class="badge badge-gray" style="flex-shrink:0;margin-top:2px">Viewer</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Assets (view) · Scan</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:10px;padding:.7rem .9rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:12px;color:var(--text3);flex-shrink:0;margin-top:2px;font-style:italic">Guest</span>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7">Dashboard (stats only)</div>
+          </div>
+        </div>
         <p style="font-size:12px;color:var(--text3);margin-top:.75rem"><i class="ti ti-info-circle"></i> &nbsp;TODO: Per-department asset views will be added once department structure is finalised.</p>
       </div>
     </div>
@@ -425,6 +470,17 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         <label style="text-align:center;display:block">Display name</label>
         <input type="text" class="form-input" id="sp-name" style="text-align:center">
       </div>
+
+      <!-- Avatar colour picker -->
+      <div style="background:var(--bg2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.6rem;text-align:center"><i class="ti ti-palette"></i> Avatar colour</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:.5rem" id="sp-color-swatches"></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <label style="font-size:12px;color:var(--text3)">Custom:</label>
+          <input type="color" id="sp-color-custom" style="width:36px;height:28px;border:none;background:none;cursor:pointer;border-radius:6px;padding:0" oninput="spSelectCustomColor(this.value)">
+        </div>
+      </div>
+      <input type="hidden" id="sp-avatar-color">
 
       <!-- Password change -->
       <div style="background:var(--bg2);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem">
@@ -529,19 +585,6 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit}
         </select>
         <p id="eu-role-locked-msg" style="display:none;font-size:12px;color:var(--text3);text-align:center;margin-top:.35rem"><i class="ti ti-lock"></i> Only a Master account can change a Master's role</p>
       </div>
-
-      <!-- Avatar color picker -->
-      <div style="margin-bottom:1rem;background:var(--bg2);border-radius:10px;padding:.75rem 1rem">
-        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:.6rem;text-align:center"><i class="ti ti-palette"></i> Avatar colour</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:.5rem" id="eu-color-swatches">
-          <!-- populated by JS -->
-        </div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-          <label style="font-size:12px;color:var(--text3)">Custom:</label>
-          <input type="color" id="eu-color-custom" style="width:36px;height:28px;border:none;background:none;cursor:pointer;border-radius:6px;padding:0" oninput="selectCustomColor(this.value)">
-        </div>
-      </div>
-      <input type="hidden" id="eu-avatar-color">
 
       <!-- Name edit -->
       <div class="form-group" style="margin-bottom:.75rem">
@@ -1755,8 +1798,8 @@ const ALL_ITEMS = [
 let ITEMS = [...ALL_ITEMS];
 let itemEls = ALL_ITEMS.map(it => document.getElementById(it.id));
 
-const ORBIT_R  = 110;
-const ITEM_R   = 27;
+const ORBIT_R  = 127;
+const ITEM_R   = 31;
 const ARC_START = 185;
 const ARC_END   = 285;
 
@@ -2209,21 +2252,6 @@ function openEditUser(username) {
   // Role pills (read-only display of current role)
   document.getElementById('eu-role-pills').innerHTML = roleBadge(u.role);
 
-  // Avatar color picker
-  const currentColor = u.avatarColor || roleColor(u.role);
-  document.getElementById('eu-avatar-color').value = currentColor;
-  document.getElementById('eu-color-custom').value = currentColor;
-  const swatchColors = [
-    '#7c3aed','#dc2626','#2563eb','#16a34a','#d97706','#6b7280',
-    '#0891b2','#db2777','#ea580c','#65a30d','#7e22ce','#0f172a'
-  ];
-  document.getElementById('eu-color-swatches').innerHTML = swatchColors.map(c =>
-    `<button onclick="selectSwatchColor('${c}')" title="${c}" style="
-      width:26px;height:26px;border-radius:50%;background:${c};border:2.5px solid ${c === currentColor ? '#fff' : 'transparent'};
-      outline:${c === currentColor ? '2px solid '+c : 'none'};cursor:pointer;transition:transform .15s;flex-shrink:0
-    " data-swatch="${c}"></button>`
-  ).join('');
-
   openModal('editUserBackdrop');
 }
 
@@ -2240,27 +2268,6 @@ function updateToggleState(active) {
   document.getElementById('eu-toggle-track').style.background = active ? 'var(--accent)' : 'var(--bg3)';
   document.getElementById('eu-toggle-thumb').style.transform  = active ? 'translateX(18px)' : 'translateX(0)';
   document.getElementById('eu-status-label').textContent = active ? 'Active' : 'Inactive';
-}
-
-/* ── Avatar colour helpers ───────────────────────── */
-function selectSwatchColor(hex) {
-  document.getElementById('eu-avatar-color').value = hex;
-  document.getElementById('eu-color-custom').value = hex;
-  document.getElementById('eu-avatar-display').style.background = hex;
-  // Update swatch outlines
-  document.querySelectorAll('#eu-color-swatches button').forEach(btn => {
-    const active = btn.dataset.swatch === hex;
-    btn.style.border  = active ? '2.5px solid #fff' : '2.5px solid transparent';
-    btn.style.outline = active ? '2px solid ' + hex : 'none';
-  });
-}
-function selectCustomColor(hex) {
-  document.getElementById('eu-avatar-color').value = hex;
-  document.getElementById('eu-avatar-display').style.background = hex;
-  document.querySelectorAll('#eu-color-swatches button').forEach(btn => {
-    btn.style.border  = '2.5px solid transparent';
-    btn.style.outline = 'none';
-  });
 }
 
 /* ── Save profile changes ────────────────────────── */
@@ -2285,7 +2292,7 @@ async function saveEditUser() {
   u.name  = document.getElementById('eu-name').value.trim() || u.name;
   u.notes = document.getElementById('eu-notes').value.trim();
   u.active = document.getElementById('eu-active').checked;
-  u.avatarColor = document.getElementById('eu-avatar-color').value || roleColor(u.role);
+  // avatarColor is now set via the user's own profile modal — preserve existing value here
 
   // Role — only update if not locked
   if (!document.getElementById('eu-role').disabled) {
@@ -2358,22 +2365,53 @@ function openSelfProfile() {
   if (!currentUser) return;
   const u = userData.find(x => x.username === currentUser.username);
   if (!u) return;
-  const roleColors = {
-    Master:'#7c3aed',Administrator:'#dc2626',Manager:'#2563eb',
-    Technician:'#16a34a',Driver:'#d97706',Viewer:'#6b7280'
-  };
-  document.getElementById('sp-avatar').textContent    = u.name.charAt(0).toUpperCase();
-  document.getElementById('sp-avatar').style.background = roleColors[u.role] || 'var(--accent)';
+  const currentColor = u.avatarColor || roleColor(u.role);
+  document.getElementById('sp-avatar').textContent     = u.name.charAt(0).toUpperCase();
+  document.getElementById('sp-avatar').style.background = currentColor;
   document.getElementById('sp-name-display').textContent = u.name;
   document.getElementById('sp-email-display').textContent = u.username;
-  document.getElementById('sp-role-badge').innerHTML  = roleBadge(u.role);
-  document.getElementById('sp-name').value            = u.name;
-  document.getElementById('sp-current-pass').value    = '';
-  document.getElementById('sp-new-pass').value        = '';
-  document.getElementById('sp-new-pass2').value       = '';
-  document.getElementById('sp-error').style.display   = 'none';
-  document.getElementById('sp-success').style.display = 'none';
+  document.getElementById('sp-role-badge').innerHTML   = roleBadge(u.role);
+  document.getElementById('sp-name').value             = u.name;
+  document.getElementById('sp-avatar-color').value     = currentColor;
+  document.getElementById('sp-color-custom').value     = currentColor;
+  document.getElementById('sp-current-pass').value     = '';
+  document.getElementById('sp-new-pass').value         = '';
+  document.getElementById('sp-new-pass2').value        = '';
+  document.getElementById('sp-error').style.display    = 'none';
+  document.getElementById('sp-success').style.display  = 'none';
+  // Build colour swatches
+  const swatchColors = [
+    '#7c3aed','#dc2626','#2563eb','#16a34a','#d97706','#6b7280',
+    '#0891b2','#db2777','#ea580c','#65a30d','#7e22ce','#0f172a'
+  ];
+  document.getElementById('sp-color-swatches').innerHTML = swatchColors.map(c =>
+    `<button onclick="spSelectSwatchColor('${c}')" title="${c}" data-swatch="${c}" style="
+      width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;flex-shrink:0;
+      border:2.5px solid ${c === currentColor ? '#fff' : 'transparent'};
+      outline:${c === currentColor ? '2px solid '+c : 'none'};transition:transform .15s
+    "></button>`
+  ).join('');
   openModal('selfProfileBackdrop');
+}
+
+/* ── Self-profile colour helpers ─────────────────── */
+function spSelectSwatchColor(hex) {
+  document.getElementById('sp-avatar-color').value = hex;
+  document.getElementById('sp-color-custom').value = hex;
+  document.getElementById('sp-avatar').style.background = hex;
+  document.querySelectorAll('#sp-color-swatches button').forEach(btn => {
+    const active = btn.dataset.swatch === hex;
+    btn.style.border  = active ? '2.5px solid #fff' : '2.5px solid transparent';
+    btn.style.outline = active ? '2px solid ' + hex : 'none';
+  });
+}
+function spSelectCustomColor(hex) {
+  document.getElementById('sp-avatar-color').value = hex;
+  document.getElementById('sp-avatar').style.background = hex;
+  document.querySelectorAll('#sp-color-swatches button').forEach(btn => {
+    btn.style.border  = '2.5px solid transparent';
+    btn.style.outline = 'none';
+  });
 }
 
 async function saveSelfProfile() {
@@ -2401,6 +2439,9 @@ async function saveSelfProfile() {
   }
 
   if (newName) u.name = newName;
+  // Save avatar colour if changed
+  const newColor = document.getElementById('sp-avatar-color').value;
+  if (newColor) u.avatarColor = newColor;
   saveUserOverride(u);
   currentUser.name = u.name;
   localStorage.setItem('ims_session', JSON.stringify(currentUser));
