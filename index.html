@@ -181,6 +181,8 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
 /* Hide frame/laser when camera is stopped */
 .qr-viewport.cam-off .qr-frame{display:none}
 .qr-viewport.cam-off video{display:none}
+/* Fully collapse the viewport box when no camera — no black space */
+.qr-viewport.cam-off{height:0;min-height:0;aspect-ratio:unset;margin-bottom:0;background:transparent;overflow:hidden}
 .scan-result{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:.75rem;background:rgba(22,163,74,.1);color:#15803d}
 [data-theme="dark"] .scan-result{color:#4ade80}
 .scan-error{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:.75rem;background:rgba(220,38,38,.1);color:#b91c1c}
@@ -260,7 +262,7 @@ textarea.form-input{resize:vertical;min-height:70px;font-family:inherit;text-ali
 <div class="app" id="app" data-theme="light">
 
   <nav class="desktop-nav">
-    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.30</span></span></div>
+    <div class="nav-brand"><i class="ti ti-server-2"></i><span>WorkStation IMS <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">v.31</span></span></div>
     <div class="nav-links" id="nav-links">
       <button class="nav-btn active" id="nav-dashboard" onclick="showPage('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
       <button class="nav-btn" id="nav-assets" onclick="showPage('assets')"><i class="ti ti-package"></i> Assets</button>
@@ -1354,8 +1356,10 @@ function showCheckinToast(msg, success, assetId) {
   }, 2800);
 }
 
-/* Geolocation + reverse geocode — called when checkin modal opens */
+/* Geolocation + reverse geocode — start as early as possible so it's ready by checkin time */
 function startCheckinGeo() {
+  // If we already have coordinates don't restart — just keep what we have
+  if (window._checkinGeo && window._checkinGeo.lat) return;
   window._checkinGeo = null;
   const statusEl = document.getElementById('checkin-geo-text');
   if (!navigator.geolocation) {
@@ -1640,6 +1644,11 @@ function stopCameraAndClose(backdropId) {
   stopStream(prefix);
   removeSnapshotUI(prefix);
   closeModal(backdropId);
+  // Reset viewport so next open starts fresh
+  const vp = document.getElementById(prefix + '-viewport');
+  if (vp) vp.classList.remove('cam-off');
+  // Clear geo cache when any scanning modal closes so next session gets a fresh fix
+  if (prefix === 'checkin' || prefix === 'scan') window._checkinGeo = null;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1663,6 +1672,10 @@ function navAction(action, opts) {
         document.getElementById('assign-asset-id').value = val;
         lookupAssetById('assign');
       });
+    } else {
+      // Already have asset ID from scan — collapse camera viewport immediately
+      const vp = document.getElementById('assign-viewport');
+      if (vp) vp.classList.add('cam-off');
     }
   } else if (action === 'unassign') {
     openModal('unassignBackdrop');
@@ -1672,9 +1685,15 @@ function navAction(action, opts) {
         document.getElementById('unassign-asset-id').value = val;
         lookupAssetById('unassign');
       });
+    } else {
+      // Already have asset ID from scan — collapse camera viewport immediately
+      const vp = document.getElementById('unassign-viewport');
+      if (vp) vp.classList.add('cam-off');
     }
   } else if (action === 'scan') {
     openModal('scanBackdrop');
+    // Start geo early — gives max time to resolve before any check-in action
+    startCheckinGeo();
     startCamera('scan', val => {
       setTimeout(() => { stopCameraAndClose('scanBackdrop'); openDetailModal(val); }, 600);
     });
@@ -2214,9 +2233,11 @@ function renderAdminPage() {
   const isMaster = currentUser.role === 'Master';
   const query = (document.getElementById('admin-search')?.value || '').toLowerCase();
   const list  = document.getElementById('admin-user-list');
-  const filtered = userData.filter(u =>
-    u.name.toLowerCase().includes(query) || u.username.toLowerCase().includes(query)
-  );
+  const filtered = userData.filter(u => {
+    // Non-master users cannot see Master accounts — they shouldn't know they exist
+    if (!isMaster && u.role === 'Master') return false;
+    return u.name.toLowerCase().includes(query) || u.username.toLowerCase().includes(query);
+  });
   if (filtered.length === 0) {
     list.innerHTML = `<div class="empty"><i class="ti ti-users"></i><p>No users found.</p></div>`;
     return;
